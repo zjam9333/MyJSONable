@@ -43,7 +43,7 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
         var codes: [String] = propertiesName.map { name in
             return ".init(name: \"\(name)\", keyPath: \\.\(name)),"
         }
-        codes.insert("static var allKeyPathList: [JSONableKeyPathObject<Self>] { return [", at: 0)
+        codes.insert("static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] { return [", at: 0)
         codes.append("]}")
         return [
             DeclSyntax(stringLiteral: codes.joined(separator: "\n")),

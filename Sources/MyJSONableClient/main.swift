@@ -8,7 +8,7 @@ let (result, code) = #stringify(a + b)
 print("The value \(result) was produced by the code \"\(code)\"")
 
 @JSONableMacro
-struct Animal2: JSONable {
+struct Animal2: MyJSONable.JSONable {
     var boolVal: Bool = false
     var doubleVal: Double = 0
     var intVal: Int = 0
