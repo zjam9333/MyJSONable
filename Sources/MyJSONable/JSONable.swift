@@ -142,6 +142,9 @@ public struct JSONableKeyPathObject<Root> {
         self.name = name
         self.keyPath = keyPath
         setValue = { valueFromJson, root in
+            if valueFromJson is NSNull {
+                return
+            }
             if let val = valueFromJson as? Value {
                 root[keyPath: keyPath] = val
             } else if let tt = Value.self as? _BuiltInBridgeType.Type, let valueFromJson = valueFromJson {
