@@ -10,6 +10,7 @@ import Foundation
 public protocol JSONable {
     static var allKeyPathList: [JSONableKeyPathObject<Self>] { get }
     mutating func decodeFromJson(json: [String: Any])
+    func encodeToJson() -> [String: Any]
     init()
 }
 
@@ -70,6 +71,63 @@ extension Array where Element: JSONable {
     }
 }
 
+extension Optional: JSONable where Wrapped: JSONable {
+    public init() {
+        self = .none
+    }
+    
+    public static var allKeyPathList: [JSONableKeyPathObject<Self>] {
+        return []
+    }
+    
+    public mutating func decodeFromJson(json: [String: Any]) {
+        var obj = Wrapped()
+        obj.decodeFromJson(json: json)
+        self = .some(obj)
+    }
+    
+    public func encodeToJson() -> [String: Any] {
+        switch self {
+        case .none:
+            return [:]
+        case .some(let somJ):
+            return somJ.encodeToJson()
+        }
+    }
+}
+
+public protocol BasicValue {
+    
+}
+
+extension String: BasicValue {
+    
+}
+
+extension Int: BasicValue {
+    
+}
+
+extension Double: BasicValue {
+    
+}
+
+extension Bool: BasicValue {
+    
+}
+
+extension Optional: BasicValue where Wrapped: BasicValue {
+    
+}
+
+extension Array: BasicValue where Element: BasicValue {
+    
+}
+
+extension Dictionary: BasicValue where Key == String, Value == Any {
+    
+}
+
 public struct JSONableKeyPathObject<Root> {
     let name: String
     let keyPath: PartialKeyPath<Root>
@@ -83,20 +141,25 @@ public struct JSONableKeyPathObject<Root> {
     private init<Value>(private: Any?, name: String, keyPath: WritableKeyPath<Root, Value>) {
         self.name = name
         self.keyPath = keyPath
-        setValue = { v, r in
-            if let val = v as? Value {
-                r[keyPath: keyPath] = val
+        setValue = { valueFromJson, root in
+            if let tt = Value.self as? _BuiltInBridgeType.Type, let valueFromJson = valueFromJson {
+                let some = tt._transform(from: valueFromJson)
+                if let val = some as? Value {
+                    root[keyPath: keyPath] = val
+                }
+            } else if let val = valueFromJson as? Value {
+                root[keyPath: keyPath] = val
             }
         }
     }
     
     /// Basic Value: String, Bool, Int, Double.... [Basic Value]
-    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) {
+    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) where Value: BasicValue {
         self.init(private: nil, name: name, keyPath: keyPath)
     }
     
     /// JSONValue
-    public  init<JSON>(name: String, keyPath: WritableKeyPath<Root, JSON>) where JSON: JSONable{
+    public init<JSON>(name: String, keyPath: WritableKeyPath<Root, JSON>) where JSON: JSONable {
         self.init(private: nil, name: name, keyPath: keyPath)
         let superSetValue = setValue
         setValue = { v, r in
@@ -104,27 +167,12 @@ public struct JSONableKeyPathObject<Root> {
                 var newModel = JSON()
                 newModel.decodeFromJson(json: d)
                 superSetValue(newModel, &r)
-            }
-        }
-    }
-    
-    /// JSONValue?
-    public init<JSON>(name: String, keyPath: WritableKeyPath<Root, Optional<JSON>>) where JSON: JSONable {
-        self.init(private: nil, name: name, keyPath: keyPath)
-        let superSetValue = setValue
-        setValue = { v, r in
-            if let d = v as? [String: Any] {
-                var newModel = JSON()
-                newModel.decodeFromJson(json: d)
-                superSetValue(newModel, &r)
-            } else {
-                superSetValue(nil, &r)
             }
         }
     }
     
     /// [JSONValue]
-    public init<JSON>(name: String, keyPath: WritableKeyPath<Root, Array<JSON>>) where JSON: JSONable{
+    public init<JSON>(name: String, keyPath: WritableKeyPath<Root, Array<JSON>>) where JSON: JSONable {
         self.init(private: nil, name: name, keyPath: keyPath)
         let superSetValue = setValue
         setValue = { v, r in
@@ -141,7 +189,7 @@ public struct JSONableKeyPathObject<Root> {
     }
     
     /// [JSONValue]?
-    public init<JSON>(name: String, keyPath: WritableKeyPath<Root, Optional<Array<JSON>>>) where JSON: JSONable{
+    public init<JSON>(name: String, keyPath: WritableKeyPath<Root, Optional<Array<JSON>>>) where JSON: JSONable {
         self.init(private: nil, name: name, keyPath: keyPath)
         let superSetValue = setValue
         setValue = { v, r in

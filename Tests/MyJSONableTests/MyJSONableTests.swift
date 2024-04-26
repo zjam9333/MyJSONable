@@ -5,52 +5,65 @@ import XCTest
 // Macro implementations build for the host, so the corresponding module is not available when cross-compiling. Cross-compiled tests may still make use of the macro itself in end-to-end tests.
 #if canImport(MyJSONableMacros)
 import MyJSONableMacros
-
-let testMacros: [String: Macro.Type] = [
-    "stringify": StringifyMacro.self,
-]
 #endif
 
 final class MyJSONableTests: XCTestCase {
-    func testMacro() throws {
-        #if canImport(MyJSONableMacros)
-        assertMacroExpansion(
-            """
-            #stringify(a + b)
-            """,
-            expandedSource: """
-            (a + b, "a + b")
-            """,
-            macros: testMacros
-        )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
-    }
-
-    func testMacroWithStringLiteral() throws {
-        #if canImport(MyJSONableMacros)
-        assertMacroExpansion(
-            #"""
-            #stringify("Hello, \(name)")
-            """#,
-            expandedSource: #"""
-            ("Hello, \(name)", #""Hello, \(name)""#)
-            """#,
-            macros: testMacros
-        )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
-    }
     
+#if canImport(MyJSONableMacros)
+    
+    func testMacroVarGetter() throws {
+        assertMacroExpansion(#"""
+            @JSONableMacro
+            struct Animal2: MyJSONable.JSONable {
+                var boolVal: Bool = false
+                var otherFunction: String {
+                    return "sfd"
+                }
+                let strLet = "sfd"
+                private var priv_p: String = ""
+                var setterGetter: String {
+                    get {
+                        return "sfd"
+                    }
+                    set {
+                        print("SDF")
+                    }
+                }
+            }
+            """#,
+        expandedSource:#"""
+            struct Animal2: MyJSONable.JSONable {
+                var boolVal: Bool = false
+                var otherFunction: String {
+                    return "sfd"
+                }
+                let strLet = "sfd"
+                private var priv_p: String = ""
+                var setterGetter: String {
+                    get {
+                        return "sfd"
+                    }
+                    set {
+                        print("SDF")
+                    }
+                }
+
+                static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] {
+                    return [
+                        .init(name: "boolVal", keyPath: \.boolVal),
+                        .init(name: "priv_p", keyPath: \.priv_p),
+                        .init(name: "setterGetter", keyPath: \.setterGetter),
+                    ]
+                }
+            }
+            """#,
+        macros: ["JSONableMacro": MyJSONableMacro.self])
+    }
     
     func testMacroWithJSONable() throws {
-#if canImport(MyJSONableMacros)
-        assertMacroExpansion(
-            #"""
+        assertMacroExpansion(#"""
             @JSONableMacro
-            struct Animal2: JSONable {
+            struct Animal2: MyJSONable.JSONable {
                 var boolVal: Bool = false
                 var doubleVal: Double = 0
                 var intVal: Int = 0
@@ -59,12 +72,27 @@ final class MyJSONableTests: XCTestCase {
             }
             """#,
             expandedSource: #"""
-            ("Hello, \(name)", #""Hello, \(name)""#)
+            struct Animal2: MyJSONable.JSONable {
+                var boolVal: Bool = false
+                var doubleVal: Double = 0
+                var intVal: Int = 0
+                var stringVal: String = ""
+                var child3: [String: Any] = [:]
+            
+                static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] {
+                    return [
+                        .init(name: "boolVal", keyPath: \.boolVal),
+                        .init(name: "doubleVal", keyPath: \.doubleVal),
+                        .init(name: "intVal", keyPath: \.intVal),
+                        .init(name: "stringVal", keyPath: \.stringVal),
+                        .init(name: "child3", keyPath: \.child3),
+                    ]
+                }
+            }
             """#,
             macros: ["JSONableMacro": MyJSONableMacro.self]
         )
-#else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-#endif
     }
+    
+    #endif
 }

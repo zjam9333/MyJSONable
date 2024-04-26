@@ -3,28 +3,6 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-/// Implementation of the `stringify` macro, which takes an expression
-/// of any type and produces a tuple containing the value of that expression
-/// and the source code that produced the value. For example
-///
-///     #stringify(x + y)
-///
-///  will expand to
-///
-///     (x + y, "x + y")
-public struct StringifyMacro: ExpressionMacro {
-    public static func expansion(
-        of node: some FreestandingMacroExpansionSyntax,
-        in context: some MacroExpansionContext
-    ) -> ExprSyntax {
-        guard let argument = node.argumentList.first?.expression else {
-            fatalError("compiler bug: the macro does not have any arguments")
-        }
-
-        return "(\(argument), \(literal: argument.description))"
-    }
-}
-
 public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
     public static func expansion(of node: AttributeSyntax,
                                  attachedTo declaration: some DeclGroupSyntax,
@@ -38,7 +16,7 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
                                  in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax]
     {
         
-        let propertyContainer = try ModelMemberPropertyContainer(decl: declaration, context: context)
+        let propertyContainer = try ModelMemberPropertyContainer(decl: declaration)
         let propertiesName = propertyContainer.memberProperties
         var codes: [String] = propertiesName.map { name in
             return ".init(name: \"\(name)\", keyPath: \\.\(name)),"
@@ -47,7 +25,6 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
         codes.append("]}")
         return [
             DeclSyntax(stringLiteral: codes.joined(separator: "\n")),
-            DeclSyntax("func doSomething() { print(\"adfjoi\") }"),
         ]
     }
 }
@@ -55,39 +32,26 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
 @main
 struct MyJSONablePlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
-        StringifyMacro.self,
         MyJSONableMacro.self,
     ]
 }
 
-
 struct ModelMemberPropertyContainer {
-    struct AttributeOption: OptionSet {
-        let rawValue: UInt
-        
-        static let open = AttributeOption(rawValue: 1 << 0)
-        static let `public` = AttributeOption(rawValue: 1 << 1)
-        static let required = AttributeOption(rawValue: 1 << 2)
-    }
-    
-    struct GenConfig {
-        let isOverride: Bool
-    }
-    
-    let context: MacroExpansionContext
-    fileprivate let decl: DeclGroupSyntax
+    private let decl: DeclGroupSyntax
     private(set) var memberProperties: [String] = []
     
-    init(decl: DeclGroupSyntax, context: some MacroExpansionContext) throws {
+    init(decl: DeclGroupSyntax) throws {
         self.decl = decl
-        self.context = context
         memberProperties = fetchModelMemberProperties()
     }
     
     func fetchModelMemberProperties() -> [String] {
         let memberList = decl.memberBlock.members
         let memberProperties = memberList.flatMap { member -> [String] in
-            guard let variable = member.decl.as(VariableDeclSyntax.self), variable.isStoredProperty else {
+            guard let variable = member.decl.as(VariableDeclSyntax.self) else {
+                return []
+            }
+            guard isMyProperty(syntax: variable) else {
                 return []
             }
             let patterns = variable.bindings.map(\.pattern)
@@ -96,21 +60,48 @@ struct ModelMemberPropertyContainer {
         }
         return memberProperties
     }
-}
-
-extension VariableDeclSyntax {
-    /// Determine whether this variable has the syntax of a stored property.
-    ///
-    /// This syntactic check cannot account for semantic adjustments due to,
-    /// e.g., accessor macros or property wrappers.
-    var isStoredProperty: Bool {
-        if modifiers.compactMap({ $0.as(DeclModifierSyntax.self) }).contains(where: { $0.name.text == "static" }) {
+    
+    func isMyProperty(syntax: VariableDeclSyntax) -> Bool {
+        // 非 static
+        let isStatic = syntax.modifiers.compactMap {
+            $0.as(DeclModifierSyntax.self)
+        }.contains {
+            $0.name.text == "static"
+        }
+        guard isStatic == false else {
             return false
         }
-        if bindings.count < 1 {
+        // var 属性
+        guard case .keyword(.var) = syntax.bindingSpecifier.tokenKind else {
             return false
         }
-        let binding = bindings.last!
+        // 可以set
+        let isCanSetProperty = syntax.bindings.contains { patt in
+            switch patt.accessorBlock?.accessors {
+            case .none:
+                return true
+            case .accessors(let s):
+                for accessor in s {
+                    switch accessor.accessorSpecifier.tokenKind {
+                    case .keyword(.set), .keyword(.didSet), .keyword(.willSet):
+                        return true
+                    default:
+                        continue
+                    }
+                }
+            default:
+                break
+            }
+            return false;
+        }
+        guard isCanSetProperty else {
+            return false
+        }
+        return true
+        /*
+        guard let binding = syntax.bindings.last else {
+            return false
+        }
         switch binding.accessorBlock?.accessors {
         case .none:
             return true
@@ -129,5 +120,6 @@ extension VariableDeclSyntax {
         case .getter:
             return false
         }
+         */
     }
 }
