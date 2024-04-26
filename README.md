@@ -44,3 +44,17 @@ animal.decodeFromJson(json: json)
 
 print("\nafter set", String(describing: animal.encodeToJsonString()!), separator: "\n")
 ```
+
+enum
+
+```
+enum EnumStringAnimal: String, JSONableEnum {
+    case cat = "cat"
+    case dog = "dog"
+}
+
+enum EnumIntAnimal: Int, JSONableEnum {
+    case cat = 1
+    case dog = 2
+}
+```

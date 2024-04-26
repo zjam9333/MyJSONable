@@ -1,5 +1,15 @@
 import MyJSONable
 
+enum EnumStringAnimal: String, JSONableEnum {
+    case cat = "cat"
+    case dog = "dog"
+}
+
+enum EnumIntAnimal: Int, JSONableEnum {
+    case cat = 1
+    case dog = 2
+}
+
 @JSONableMacro
 struct Animal2: MyJSONable.JSONable {
     var boolVal: Bool = false
@@ -11,6 +21,8 @@ struct Animal2: MyJSONable.JSONable {
     var child3: ChildAnimal2?
     var children: [ChildAnimal2] = []
     var children2: [ChildAnimal2?] = []
+    var stringAnimal: EnumStringAnimal? = .cat
+    var intAnimal: EnumIntAnimal = .cat
     
     var childComputed: String {
         get {
@@ -55,6 +67,8 @@ let json: [String: Any] = [
     "intVal": "314",
     "stringVal": "New Dog",
     "optionalVal": 99,
+    "intAnimal": 2,
+//    "stringAnimal": nil, 
     "child2": [
         "age2": 100,
         "name2": "New Cow"

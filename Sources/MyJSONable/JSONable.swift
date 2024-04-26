@@ -35,6 +35,8 @@ extension JSONable {
                     return j.encodeToJson()
                 }
                 dic[key] = subArr
+            } else if let enu = val as? any JSONableEnum {
+                dic[key] = enu.rawValue
             } else {
                 // 基本数据类型
                 // nsnull 在这里？
@@ -96,37 +98,22 @@ extension Optional: JSONable where Wrapped: JSONable {
     }
 }
 
-public protocol BasicValue {
-    
-}
+public protocol BasicValue { }
 
-extension String: BasicValue {
-    
-}
+extension String: BasicValue { }
 
-extension Int: BasicValue {
-    
-}
+extension Int: BasicValue { }
 
-extension Double: BasicValue {
-    
-}
+extension Float: BasicValue { }
+extension Double: BasicValue { }
 
-extension Bool: BasicValue {
-    
-}
+extension Bool: BasicValue { }
 
-extension Optional: BasicValue where Wrapped: BasicValue {
-    
-}
+extension Optional: BasicValue where Wrapped: BasicValue { }
 
-extension Array: BasicValue where Element: BasicValue {
-    
-}
+extension Array: BasicValue where Element: BasicValue { }
 
-extension Dictionary: BasicValue where Key == String, Value == Any {
-    
-}
+extension Dictionary: BasicValue where Key == String, Value == Any { }
 
 public struct JSONableKeyPathObject<Root> {
     let name: String
@@ -159,6 +146,19 @@ public struct JSONableKeyPathObject<Root> {
     /// Basic Value: String, Bool, Int, Double.... [Basic Value]
     public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) where Value: BasicValue {
         self.init(private: nil, name: name, keyPath: keyPath)
+    }
+    
+    
+    /// Enum
+    public init<ENUM>(name: String, keyPath: WritableKeyPath<Root, ENUM>) where ENUM: JSONableEnum {
+        self.init(private: nil, name: name, keyPath: keyPath)
+        let superSetValue = setValue
+        setValue = { v, r in
+            if let d = v as? ENUM.RawValue {
+                let newModel = ENUM(rawValue: d)
+                superSetValue(newModel, &r)
+            }
+        }
     }
     
     /// JSONValue
@@ -213,4 +213,31 @@ public struct JSONableKeyPathObject<Root> {
     /// [JSONValue?] [JSONValue]?
     /// 不懂这个结构
     
+}
+
+public protocol JSONableEnum {
+    associatedtype RawValue: BasicValue
+    init?(rawValue: RawValue)
+    var rawValue: RawValue { get }
+}
+
+extension Optional: JSONableEnum where Wrapped: JSONableEnum {
+    public typealias RawValue = Optional<Wrapped.RawValue>
+    
+    public var rawValue: RawValue {
+        switch self {
+        case .none:
+            return .none
+        case .some(let enu):
+            return enu.rawValue
+        }
+    }
+    
+    public init?(rawValue: RawValue) {
+        if let rawValue = rawValue, let en = Wrapped(rawValue: rawValue) {
+            self = .some(en)
+        } else {
+            self = .none
+        }
+    }
 }
