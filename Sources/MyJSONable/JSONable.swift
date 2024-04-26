@@ -142,13 +142,13 @@ public struct JSONableKeyPathObject<Root> {
         self.name = name
         self.keyPath = keyPath
         setValue = { valueFromJson, root in
-            if let tt = Value.self as? _BuiltInBridgeType.Type, let valueFromJson = valueFromJson {
+            if let val = valueFromJson as? Value {
+                root[keyPath: keyPath] = val
+            } else if let tt = Value.self as? _BuiltInBridgeType.Type, let valueFromJson = valueFromJson {
                 let some = tt._transform(from: valueFromJson)
                 if let val = some as? Value {
                     root[keyPath: keyPath] = val
                 }
-            } else if let val = valueFromJson as? Value {
-                root[keyPath: keyPath] = val
             }
         }
     }
