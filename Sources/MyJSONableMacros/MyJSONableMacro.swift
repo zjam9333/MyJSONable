@@ -21,8 +21,12 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
         var codes: [String] = propertiesName.map { name in
             return ".init(name: \"\(name)\", keyPath: \\.\(name)),"
         }
-        codes.insert("static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] { return [", at: 0)
-        codes.append("]}")
+//        codes.insert("static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] { return [", at: 0)
+//        codes.append("]}")
+        
+        // 用let比之前的var getter快很多，省略了重复初始化数组的时间
+        codes.insert("static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] = [", at: 0)
+        codes.append("]")
         return [
             DeclSyntax(stringLiteral: codes.joined(separator: "\n")),
         ]
