@@ -49,8 +49,11 @@ struct Animal2: MyJSONable.JSONable {
         }
     }
     
+    
     @JSONableMacro
-    struct ChildAnimal2: MyJSONable.JSONable {
+    final class ChildAnimal2: MyJSONable.JSONable {
+        //    static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<ChildAnimal2>] = []
+        
         var age2: Int = 0
         var name2: String = ""
         var stringList: [String]?
@@ -72,6 +75,7 @@ struct Animal2: MyJSONable.JSONable {
         }),
     ]
 }
+
 
 var animal = Animal2()
 let json: [String: Any] = [

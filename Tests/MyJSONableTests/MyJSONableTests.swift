@@ -11,6 +11,26 @@ final class MyJSONableTests: XCTestCase {
     
 #if canImport(MyJSONableMacros)
     
+    func testMacroClass() throws {
+        assertMacroExpansion(#"""
+            @JSONableMacro
+            final class ChildAnimal2: MyJSONable.JSONable {
+            
+                var age2: Int = 0
+                var name2: String = ""
+                var stringList: [String]?
+            }
+            """#, expandedSource: #"""
+            final class ChildAnimal2: MyJSONable.JSONable {
+            
+                var age2: Int = 0
+                var name2: String = ""
+                var stringList: [String]?
+            }
+            """
+            """#, macros: ["JSONableMacro": MyJSONableMacro.self])
+    }
+    
     func testMacroVarGetter() throws {
         assertMacroExpansion(#"""
             @JSONableMacro

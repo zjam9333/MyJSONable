@@ -18,6 +18,7 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
         
         let propertyContainer = try ModelMemberPropertyContainer(decl: declaration)
         let propertiesName = propertyContainer.memberProperties
+        let typeName = propertyContainer.name ?? "Self"
         var codes: [String] = propertiesName.map { name in
             return ".init(name: \"\(name)\", keyPath: \\.\(name)),"
         }
@@ -25,7 +26,7 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
 //        codes.append("]}")
         
         // 用let比之前的var getter快很多，省略了重复初始化数组的时间
-        codes.insert("static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] = [", at: 0)
+        codes.insert("static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<\(typeName)>] = [", at: 0)
         codes.append("]")
         return [
             DeclSyntax(stringLiteral: codes.joined(separator: "\n")),
@@ -42,14 +43,34 @@ struct MyJSONablePlugin: CompilerPlugin {
 
 struct ModelMemberPropertyContainer {
     private let decl: DeclGroupSyntax
+    private(set) var name: String?
     private(set) var memberProperties: [String] = []
     
     init(decl: DeclGroupSyntax) throws {
         self.decl = decl
         memberProperties = fetchModelMemberProperties()
+        name = typeName()
     }
     
-    func fetchModelMemberProperties() -> [String] {
+    private func typeName() -> String? {
+        var token: TokenSyntax?
+        if let decl = decl.as(StructDeclSyntax.self) {
+            token = decl.name
+        } else if let decl = decl.as(ClassDeclSyntax.self) {
+            token = decl.name
+        }
+        switch token?.tokenKind {        
+        case .none:
+            break
+        case .identifier(let name):
+            return name
+        default: 
+            break
+        }
+        return nil
+    }
+    
+    private func fetchModelMemberProperties() -> [String] {
         let memberList = decl.memberBlock.members
         let memberProperties = memberList.flatMap { member -> [String] in
             guard let variable = member.decl.as(VariableDeclSyntax.self) else {

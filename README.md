@@ -8,7 +8,7 @@ use swift package manager add this git
 
 ## Documentation
 
-Basic
+### Basic
 
 ```swift
 import MyJSONable
@@ -49,7 +49,22 @@ print("\nafter set", String(describing: animal.encodeToJsonString()!), separator
 
 use `@JSONableMacro` macro to auto generate `allKeyPathList` getter, or write manually
 
-Enum type from string or int
+### class 
+
+must be `final class`
+
+```
+@JSONableMacro
+final class ChildAnimal2: MyJSONable.JSONable {
+    var age2: Int = 0
+    var name2: String = ""
+    var stringList: [String]?
+}
+```
+
+### Enum
+
+enum type from string or int
 
 ```
 enum EnumStringAnimal: String, JSONableEnum {
@@ -63,7 +78,9 @@ enum EnumIntAnimal: Int, JSONableEnum {
 }
 ```
 
-Custom key name: Different key from json
+### Custom key name
+
+Different key from json
 example using key `"cccc"` for property `var children2`
 
 ```
@@ -72,7 +89,9 @@ static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
     ]
 ```
 
-Custom value mapper: `JsonValue <--> ModelValue`
+### Custom value mapper
+
+mapper `JsonValue <--> ModelValue`
 
 example `var birthday: Date?`
 
