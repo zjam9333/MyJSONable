@@ -9,41 +9,45 @@ import Foundation
 
 public protocol JSONable {
     static var allKeyPathList: [JSONableKeyPathObject<Self>] { get }
+    
+    /// 自定义的KeyPathList，可以改写jsonKey，customMap等
+    static var customKeyPathList: [JSONableKeyPathObject<Self>] { get }
     mutating func decodeFromJson(json: [String: Any])
     func encodeToJson() -> [String: Any]
     init()
 }
 
 extension JSONable {
+    public static var customKeyPathList: [JSONableKeyPathObject<Self>] {
+        return []
+    }
+    
     public mutating func decodeFromJson(json: [String: Any]) {
         for kpObj in Self.allKeyPathList {
+            let newValue = json[kpObj.name]
+            kpObj.setAny(value: newValue, root: &self)
+        }
+        for kpObj in Self.customKeyPathList {
             let newValue = json[kpObj.name]
             kpObj.setAny(value: newValue, root: &self)
         }
     }
     
     public func encodeToJson() -> [String: Any] {
-        var dic = [String: Any]()
-        for chi in Self.allKeyPathList {
-            let key = chi.name
-            let val = self[keyPath: chi.keyPath]
-            if let js = val as? any JSONable {
-                let subJson = js.encodeToJson()
-                dic[key] = subJson
-            } else if let arr = val as? [any JSONable] {
-                let subArr = arr.map { j in
-                    return j.encodeToJson()
-                }
-                dic[key] = subArr
-            } else if let enu = val as? any JSONableEnum {
-                dic[key] = enu.rawValue
-            } else {
-                // 基本数据类型
-                // nsnull 在这里？
-                dic[key] = val
-            }
+        var json = [String: Any]()
+        var allKeyPathDict: [AnyHashable: JSONableKeyPathObject<Self>] = [:]
+        for kpObj in Self.allKeyPathList {
+            allKeyPathDict[kpObj.keyPath] = kpObj
         }
-        return dic
+        for kpObj in Self.customKeyPathList {
+            // custom的keyPath覆盖默认的allKeyPath
+            allKeyPathDict[kpObj.keyPath] = kpObj
+        }
+        for chi in allKeyPathDict.values {
+            let key = chi.name
+            json[key] = chi.getAny(root: self)
+        }
+        return json
     }
     
     public func encodeToJsonData(options: JSONSerialization.WritingOptions = [.fragmentsAllowed, .prettyPrinted]) -> Data? {
@@ -119,43 +123,104 @@ public struct JSONableKeyPathObject<Root> {
     let name: String
     let keyPath: PartialKeyPath<Root>
     
+//    private let originalSetValue: (Any?, inout Root) -> Void
     private var setValue: (Any?, inout Root) -> Void
     
     func setAny(value: Any?, root: inout Root) {
         setValue(value, &root)
     }
+//    private let originalGetValue: (Root) -> Any?
+    private var getValue: (Root) -> Any?
     
-    private init<Value>(private: Any?, name: String, keyPath: WritableKeyPath<Root, Value>) {
+    func getAny(root: Root) -> Any? {
+        return getValue(root)
+    }
+    
+    private init<Value>(private: Any?, name: String, keyPath: WritableKeyPath<Root, Value>, customGet: ((Value) -> Any?)?, customSet: ((Any) -> Value?)?) {
         self.name = name
         self.keyPath = keyPath
-        setValue = { valueFromJson, root in
-            if valueFromJson is NSNull {
-                return
+        
+        let originalSetValue: (Value, inout Root) -> Void = { v, r in
+            r[keyPath: keyPath] = v
+        }
+        
+        let originalGetValue: (Root) -> Value = { r in
+            return r[keyPath: keyPath]
+        }
+        
+        if let customGet = customGet {
+            getValue = { r in
+                let oldValue = originalGetValue(r)
+                return customGet(oldValue)
             }
-            if let val = valueFromJson as? Value {
-                root[keyPath: keyPath] = val
-            } else if let tt = Value.self as? _BuiltInBridgeType.Type, let valueFromJson = valueFromJson {
-                let some = tt._transform(from: valueFromJson)
-                if let val = some as? Value {
-                    root[keyPath: keyPath] = val
+        } else {
+            getValue = { r in
+                let val = originalGetValue(r)
+                if let js = val as? any JSONable {
+                    return js.encodeToJson()
+                    
+                } else if let arr = val as? [any JSONable] {
+                    return arr.map { j in
+                        return j.encodeToJson()
+                    }
+                } else if let enu = val as? (any JSONableCustomMap) {
+                    return enu.modelToJSONType()
+                } else {
+                    // 基本数据类型
+                    // nsnull 在这里？
+                    return val
+                }
+            }
+        }
+        if let customSet = customSet {
+            setValue = { v, r in
+                if let v = v, let mo = customSet(v) {
+                    originalSetValue(mo, &r)
+                }
+            }
+        } else {
+            setValue = { valueFromJson, root in
+                if valueFromJson is NSNull {
+                    return
+                }
+                if let val = valueFromJson as? Value {
+                    originalSetValue(val, &root)
+                } else if let tt = Value.self as? _BuiltInBridgeType.Type, let valueFromJson = valueFromJson {
+                    let some = tt._transform(from: valueFromJson)
+                    if let val = some as? Value {
+                        originalSetValue(val, &root)
+                    }
                 }
             }
         }
     }
     
-    /// Basic Value: String, Bool, Int, Double.... [Basic Value]
-    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) where Value: BasicValue {
-        self.init(private: nil, name: name, keyPath: keyPath)
+    /// 未实现的类型，默认不转换
+    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) {
+        self.init(private: nil, name: name, keyPath: keyPath) { v in
+            return nil
+        } customSet: { a in
+            return nil
+        }
     }
     
+    /// 任意Any转Valye的CustomMap方法
+    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> Any?, customSet: @escaping (Any) -> Value) {
+        self.init(private: nil, name: name, keyPath: keyPath, customGet: customGet, customSet: customSet)
+    }
+    
+    /// Basic Value: String, Bool, Int, Double.... [Basic Value]
+    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) where Value: BasicValue {
+        self.init(private: nil, name: name, keyPath: keyPath, customGet: nil, customSet: nil)
+    }
     
     /// Enum
-    public init<ENUM>(name: String, keyPath: WritableKeyPath<Root, ENUM>) where ENUM: JSONableEnum {
-        self.init(private: nil, name: name, keyPath: keyPath)
+    public init<CustomMap>(name: String, keyPath: WritableKeyPath<Root, CustomMap>) where CustomMap: JSONableCustomMap {
+        self.init(private: nil, name: name, keyPath: keyPath, customGet: nil, customSet: nil)
         let superSetValue = setValue
         setValue = { v, r in
-            if let d = v as? ENUM.RawValue {
-                let newModel = ENUM(rawValue: d)
+            if let d = v as? CustomMap.JSONType {
+                let newModel = CustomMap(rawValue: d)
                 superSetValue(newModel, &r)
             }
         }
@@ -163,7 +228,7 @@ public struct JSONableKeyPathObject<Root> {
     
     /// JSONValue
     public init<JSON>(name: String, keyPath: WritableKeyPath<Root, JSON>) where JSON: JSONable {
-        self.init(private: nil, name: name, keyPath: keyPath)
+        self.init(private: nil, name: name, keyPath: keyPath, customGet: nil, customSet: nil)
         let superSetValue = setValue
         setValue = { v, r in
             if let d = v as? [String: Any] {
@@ -176,7 +241,7 @@ public struct JSONableKeyPathObject<Root> {
     
     /// [JSONValue]
     public init<JSON>(name: String, keyPath: WritableKeyPath<Root, Array<JSON>>) where JSON: JSONable {
-        self.init(private: nil, name: name, keyPath: keyPath)
+        self.init(private: nil, name: name, keyPath: keyPath, customGet: nil, customSet: nil)
         let superSetValue = setValue
         setValue = { v, r in
             var arr = [JSON]()
@@ -193,7 +258,7 @@ public struct JSONableKeyPathObject<Root> {
     
     /// [JSONValue]?
     public init<JSON>(name: String, keyPath: WritableKeyPath<Root, Optional<Array<JSON>>>) where JSON: JSONable {
-        self.init(private: nil, name: name, keyPath: keyPath)
+        self.init(private: nil, name: name, keyPath: keyPath, customGet: nil, customSet: nil)
         let superSetValue = setValue
         setValue = { v, r in
             if let jsonArr = v as? Array<Any> {
@@ -212,32 +277,43 @@ public struct JSONableKeyPathObject<Root> {
     
     /// [JSONValue?] [JSONValue]?
     /// 不懂这个结构
-    
 }
 
-public protocol JSONableEnum {
+public protocol JSONableCustomMap {
+    associatedtype JSONType
+    typealias ModelType = Self
+    func modelToJSONType() -> JSONType?
+    init?(rawValue: JSONType)
+}
+
+public protocol JSONableEnum: JSONableCustomMap where JSONType == RawValue {
     associatedtype RawValue: BasicValue
     init?(rawValue: RawValue)
     var rawValue: RawValue { get }
 }
 
-extension Optional: JSONableEnum where Wrapped: JSONableEnum {
-    public typealias RawValue = Optional<Wrapped.RawValue>
+extension JSONableEnum {
+    public func modelToJSONType() -> RawValue? {
+        return rawValue
+    }
+}
+
+extension Optional: JSONableCustomMap where Wrapped: JSONableCustomMap {
+    public typealias JSONType = Wrapped.JSONType
     
-    public var rawValue: RawValue {
-        switch self {
-        case .none:
-            return .none
-        case .some(let enu):
-            return enu.rawValue
+    public init?(rawValue: JSONType) {
+        guard let w = Wrapped(rawValue: rawValue) else {
+            return nil
         }
+        self = .some(w)
     }
     
-    public init?(rawValue: RawValue) {
-        if let rawValue = rawValue, let en = Wrapped(rawValue: rawValue) {
-            self = .some(en)
-        } else {
-            self = .none
+    public func modelToJSONType() -> JSONType? {
+        switch self {
+        case .none:
+            return nil
+        case .some(let jj):
+            return jj.modelToJSONType()
         }
     }
 }

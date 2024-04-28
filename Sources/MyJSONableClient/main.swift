@@ -1,4 +1,5 @@
 import MyJSONable
+import Foundation
 
 enum EnumStringAnimal: String, JSONableEnum {
     case cat = "cat"
@@ -23,6 +24,7 @@ struct Animal2: MyJSONable.JSONable {
     var children2: [ChildAnimal2?] = []
     var stringAnimal: EnumStringAnimal? = .cat
     var intAnimal: EnumIntAnimal = .cat
+    var birthday: Date?
     
     var childComputed: String {
         get {
@@ -58,6 +60,17 @@ struct Animal2: MyJSONable.JSONable {
         return "sfd"
     }
     
+    static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
+        .init(name: "cccc", keyPath: \.children2),
+        .init(name: "birthday", keyPath: \.birthday, customGet: { someDate in
+            return someDate?.timeIntervalSince1970
+        }, customSet: { someI in
+            if let interv = someI as? TimeInterval {
+                return Date(timeIntervalSince1970: interv)
+            }
+            return nil
+        }),
+    ]
 }
 
 var animal = Animal2()
@@ -68,7 +81,8 @@ let json: [String: Any] = [
     "stringVal": "New Dog",
     "optionalVal": 99,
     "intAnimal": 2,
-//    "stringAnimal": nil, 
+    "stringAnimal": "dog", 
+    "birthday": Date().timeIntervalSince1970,
     "child2": [
         "age2": 100,
         "name2": "New Cow"
@@ -87,7 +101,7 @@ let json: [String: Any] = [
             "name2": "New 333",
         ],
     ],
-    "children2": [
+    "cccc": [
         [
             "age2": 22,
             "name2": "New 222",
