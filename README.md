@@ -4,9 +4,11 @@ JSON to Model, Model to JSON
 
 ## Install
 
-swift package manager
+use swift package manager add this git
 
 ## Documentation
+
+Basic
 
 ```swift
 import MyJSONable
@@ -45,7 +47,9 @@ animal.decodeFromJson(json: json)
 print("\nafter set", String(describing: animal.encodeToJsonString()!), separator: "\n")
 ```
 
-enum
+use `@JSONableMacro` macro to auto generate `allKeyPathList` getter, or write manually
+
+Enum type from string or int
 
 ```
 enum EnumStringAnimal: String, JSONableEnum {
@@ -58,3 +62,30 @@ enum EnumIntAnimal: Int, JSONableEnum {
     case dog = 2
 }
 ```
+
+Custom key name: Different key from json
+example using key `"cccc"` for property `var children2`
+
+```
+static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
+    .init(name: "cccc", keyPath: \.children2)
+    ]
+```
+
+Custom value mapper: `JsonValue <--> ModelValue`
+
+example `var birthday: Date?`
+
+```
+static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
+    .init(name: "birthday", keyPath: \.birthday, customGet: { someDate in
+        return someDate?.timeIntervalSince1970
+    }, customSet: { someI in
+        if let interv = someI as? TimeInterval {
+            return Date(timeIntervalSince1970: interv)
+        }
+        return nil
+    }),
+]
+```
+
