@@ -205,7 +205,7 @@ public struct JSONableKeyPathObject<Root> {
     }
     
     /// 任意Any转Valye的CustomMap方法
-    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> Any?, customSet: @escaping (Any) -> Value) {
+    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> Any?, customSet: @escaping (Any) -> Value?) {
         self.init(private: nil, name: name, keyPath: keyPath, customGet: customGet, customSet: customSet)
     }
     
