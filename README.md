@@ -53,7 +53,7 @@ use `@JSONableMacro` macro to auto generate `allKeyPathList` getter, or write ma
 
 must be `final class`
 
-```
+```swift
 @JSONableMacro
 final class ChildAnimal2: MyJSONable.JSONable {
     var age2: Int = 0
@@ -66,7 +66,7 @@ final class ChildAnimal2: MyJSONable.JSONable {
 
 enum type from string or int
 
-```
+```swift
 enum EnumStringAnimal: String, JSONableEnum {
     case cat = "cat"
     case dog = "dog"
@@ -83,7 +83,7 @@ enum EnumIntAnimal: Int, JSONableEnum {
 Different key from json
 example using key `"cccc"` for property `var children2`
 
-```
+```swift
 static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
     .init(name: "cccc", keyPath: \.children2)
     ]
@@ -95,7 +95,7 @@ mapper `JsonValue <--> ModelValue`
 
 example `var birthday: Date?`
 
-```
+```swift
 static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
     .init(name: "birthday", keyPath: \.birthday, customGet: { someDate in
         return someDate?.timeIntervalSince1970
