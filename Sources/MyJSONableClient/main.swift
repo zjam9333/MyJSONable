@@ -40,18 +40,14 @@ struct Animal2: MyJSONable.JSONable {
             return "b"
         }
     }
-    var jasfS: String {
-        get {
-            return "b"
-        }
-        set {
-            stringVal = newValue
-        }
-    }
+    var keyExcluded: String = "Not to JSON"
     
+    static let encodeJsonExcludedKeys: Set<PartialKeyPath<Animal2>> = [
+        \.keyExcluded,
+    ]
     
     @JSONableMacro
-    final class ChildAnimal2: MyJSONable.JSONable {
+    final class ChildAnimal2 {
         //    static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<ChildAnimal2>] = []
         
         var age2: Int = 0

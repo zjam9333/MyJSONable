@@ -2,13 +2,17 @@
 
 JSON to Model, Model to JSON
 
+## Implement
+
+通过简单的keyPaths遍历实现property写入
+
 ## Install
 
 use swift package manager add this git
 
 ## Documentation
 
-### Basic
+### Basic 基础用法
 
 ```swift
 import MyJSONable
@@ -62,7 +66,7 @@ final class ChildAnimal2: MyJSONable.JSONable {
 }
 ```
 
-### Enum
+### Enum 枚举类型
 
 enum type from string or int
 
@@ -78,7 +82,7 @@ enum EnumIntAnimal: Int, JSONableEnum {
 }
 ```
 
-### Custom key name
+### Custom key name 自定义json的key值
 
 Different key from json
 example using key `"cccc"` for property `var children2`
@@ -89,7 +93,7 @@ static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
     ]
 ```
 
-### Custom value mapper
+### Custom value mapper 自定义类型的转化
 
 mapper `JsonValue <--> ModelValue`
 
@@ -108,3 +112,18 @@ static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
 ]
 ```
 
+### Exclude Keys to JSON 输出Json时排除特定key
+
+example: exclude key `price` while encodeToJSON
+```swift
+@JSONableMacro
+struct Animal_M: JSONable {
+    var age: Int = 0
+    var name: String = "Cat"
+    var price: String = "Value not to JSON"
+    
+    static let encodeJsonExcludedKeys: Set<PartialKeyPath<Animal2>> = [
+        \.price,
+    ]
+}
+```

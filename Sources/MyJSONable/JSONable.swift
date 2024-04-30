@@ -13,6 +13,10 @@ public protocol JSONable {
     
     /// 自定义的KeyPathList，可以改写jsonKey，customMap等
     static var customKeyPathList: [JSONableKeyPathObject<Self>] { get }
+    
+    /// 序列化json时需要排除的key
+    static var encodeJsonExcludedKeys: Set<PartialKeyPath<Self>> { get }
+    
     mutating func decodeFromJson(json: [String: JSONValue])
     init(fromJson json: [String: JSONValue])
     func encodeToJson() -> [String: JSONValue]
@@ -30,6 +34,10 @@ extension JSONable {
         return []
     }
     
+    public static var encodeJsonExcludedKeys: Set<PartialKeyPath<Self>> {
+        return []
+    }
+    
     public mutating func decodeFromJson(json: [String: JSONValue]) {
         for kpObj in Self.allKeyPathList {
             let newValue = json[kpObj.name]
@@ -39,11 +47,12 @@ extension JSONable {
             let newValue = json[kpObj.name]
             kpObj.setValue(newValue, &self)
         }
+        let excludedKeys = Self.encodeJsonExcludedKeys
     }
     
     public func encodeToJson() -> [String: JSONValue] {
         var json = [String: JSONValue]()
-        var allKeyPathDict: [AnyHashable: JSONableKeyPathObject<Self>] = [:]
+        var allKeyPathDict: [PartialKeyPath<Self>: JSONableKeyPathObject<Self>] = [:]
         for kpObj in Self.allKeyPathList {
             allKeyPathDict[kpObj.keyPath] = kpObj
         }
@@ -51,7 +60,13 @@ extension JSONable {
             // custom的keyPath覆盖默认的allKeyPath
             allKeyPathDict[kpObj.keyPath] = kpObj
         }
-        for chi in allKeyPathDict.values {
+        let excludedKeys = Self.encodeJsonExcludedKeys
+        for keyvale in allKeyPathDict {
+            let (hash, chi) = keyvale
+            if excludedKeys.contains(hash) {
+                // 排除key
+                continue
+            }
             let key = chi.name
             json[key] = chi.getValue(self)
         }
