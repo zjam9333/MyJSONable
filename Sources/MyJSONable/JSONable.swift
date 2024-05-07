@@ -47,7 +47,6 @@ extension JSONable {
             let newValue = json[kpObj.name]
             kpObj.setValue(newValue, &self)
         }
-        let excludedKeys = Self.encodeJsonExcludedKeys
     }
     
     public func encodeToJson() -> [String: JSONValue] {

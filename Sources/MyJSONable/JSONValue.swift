@@ -50,6 +50,15 @@ public protocol BasicValue { }
 extension String: BasicValue { }
 
 extension Int: BasicValue { }
+extension Int8: BasicValue {}
+extension Int16: BasicValue {}
+extension Int32: BasicValue {}
+extension Int64: BasicValue {}
+extension UInt: BasicValue {}
+extension UInt8: BasicValue {}
+extension UInt16: BasicValue {}
+extension UInt32: BasicValue {}
+extension UInt64: BasicValue {}
 
 extension Float: BasicValue { }
 extension Double: BasicValue { }

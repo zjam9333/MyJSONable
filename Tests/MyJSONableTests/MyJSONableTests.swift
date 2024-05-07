@@ -15,19 +15,22 @@ final class MyJSONableTests: XCTestCase {
         assertMacroExpansion(#"""
             @JSONableMacro
             final class ChildAnimal2: MyJSONable.JSONable {
-            
                 var age2: Int = 0
                 var name2: String = ""
                 var stringList: [String]?
             }
             """#, expandedSource: #"""
             final class ChildAnimal2: MyJSONable.JSONable {
-            
                 var age2: Int = 0
                 var name2: String = ""
                 var stringList: [String]?
+            
+                static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<ChildAnimal2>] = [
+                    .init(name: "age2", keyPath: \.age2),
+                    .init(name: "name2", keyPath: \.name2),
+                    .init(name: "stringList", keyPath: \.stringList),
+                ]
             }
-            """
             """#, macros: ["JSONableMacro": MyJSONableMacro.self])
     }
     
@@ -67,14 +70,12 @@ final class MyJSONableTests: XCTestCase {
                         print("SDF")
                     }
                 }
-
-                static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] {
-                    return [
-                        .init(name: "boolVal", keyPath: \.boolVal),
-                        .init(name: "priv_p", keyPath: \.priv_p),
-                        .init(name: "setterGetter", keyPath: \.setterGetter),
-                    ]
-                }
+            
+                static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<Animal2>] = [
+                    .init(name: "boolVal", keyPath: \.boolVal),
+                    .init(name: "priv_p", keyPath: \.priv_p),
+                    .init(name: "setterGetter", keyPath: \.setterGetter),
+                ]
             }
             """#,
         macros: ["JSONableMacro": MyJSONableMacro.self])
@@ -99,15 +100,13 @@ final class MyJSONableTests: XCTestCase {
                 var stringVal: String = ""
                 var child3: [String: Any] = [:]
             
-                static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] {
-                    return [
-                        .init(name: "boolVal", keyPath: \.boolVal),
-                        .init(name: "doubleVal", keyPath: \.doubleVal),
-                        .init(name: "intVal", keyPath: \.intVal),
-                        .init(name: "stringVal", keyPath: \.stringVal),
-                        .init(name: "child3", keyPath: \.child3),
-                    ]
-                }
+                static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<Animal2>] = [
+                    .init(name: "boolVal", keyPath: \.boolVal),
+                    .init(name: "doubleVal", keyPath: \.doubleVal),
+                    .init(name: "intVal", keyPath: \.intVal),
+                    .init(name: "stringVal", keyPath: \.stringVal),
+                    .init(name: "child3", keyPath: \.child3),
+                ]
             }
             """#,
             macros: ["JSONableMacro": MyJSONableMacro.self]

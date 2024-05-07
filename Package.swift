@@ -44,6 +44,7 @@ let package = Package(
         .testTarget(
             name: "MyJSONableTests",
             dependencies: [
+                "MyJSONable",
                 "MyJSONableMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ]
