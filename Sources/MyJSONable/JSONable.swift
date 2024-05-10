@@ -7,69 +7,20 @@
 
 import Foundation
 
-public protocol JSONable {
-    /// 写入属性必要的列表，可用Macro生成
-    static var allKeyPathList: [JSONableKeyPathObject<Self>] { get }
-    
-    /// 自定义的KeyPathList，可以改写jsonKey，customMap等
-    static var customKeyPathList: [JSONableKeyPathObject<Self>] { get }
-    
-    /// 序列化json时需要排除的key
-    static var encodeJsonExcludedKeys: Set<PartialKeyPath<Self>> { get }
-    
+public typealias JSONable = ValueTypeKeyPathProvider & JSONEncodeDecode
+
+public protocol JSONEncodeDecode {
     mutating func decodeFromJson(json: [String: JSONValue])
     init(fromJson json: [String: JSONValue])
     func encodeToJson() -> [String: JSONValue]
     init()
 }
 
-extension JSONable {
+extension JSONEncodeDecode {
     
     public init(fromJson json: [String: JSONValue]) {
         self.init()
         self.decodeFromJson(json: json)
-    }
-    
-    public static var customKeyPathList: [JSONableKeyPathObject<Self>] {
-        return []
-    }
-    
-    public static var encodeJsonExcludedKeys: Set<PartialKeyPath<Self>> {
-        return []
-    }
-    
-    public mutating func decodeFromJson(json: [String: JSONValue]) {
-        for kpObj in Self.allKeyPathList {
-            let newValue = json[kpObj.name]
-            kpObj.setValue(newValue, &self)
-        }
-        for kpObj in Self.customKeyPathList {
-            let newValue = json[kpObj.name]
-            kpObj.setValue(newValue, &self)
-        }
-    }
-    
-    public func encodeToJson() -> [String: JSONValue] {
-        var json = [String: JSONValue]()
-        var allKeyPathDict: [PartialKeyPath<Self>: JSONableKeyPathObject<Self>] = [:]
-        for kpObj in Self.allKeyPathList {
-            allKeyPathDict[kpObj.keyPath] = kpObj
-        }
-        for kpObj in Self.customKeyPathList {
-            // custom的keyPath覆盖默认的allKeyPath
-            allKeyPathDict[kpObj.keyPath] = kpObj
-        }
-        let excludedKeys = Self.encodeJsonExcludedKeys
-        for keyvale in allKeyPathDict {
-            let (hash, chi) = keyvale
-            if excludedKeys.contains(hash) {
-                // 排除key
-                continue
-            }
-            let key = chi.name
-            json[key] = chi.getValue(self)
-        }
-        return json
     }
     
     public func encodeToJsonData(options: JSONSerialization.WritingOptions = [.fragmentsAllowed, .prettyPrinted]) -> Data? {
@@ -89,37 +40,102 @@ extension JSONable {
     }
 }
 
-public struct JSONableKeyPathObject<Root> {
+public protocol ValueTypeKeyPathProvider {
+    /// 写入属性必要的列表，可用Macro生成
+    func allKeyPathList() -> [JSONableKeyPathObject]
     
-    let name: String
-    let keyPath: PartialKeyPath<Root>
+    /// 自定义的KeyPathList，可以改写jsonKey，customMap等
+    func customKeyPathList() -> [JSONableKeyPathObject]
     
-    let setValue: (JSONValue?, inout Root) -> Void
+    /// 序列化json时需要排除的key
+    func encodeJsonExcludedKeys() -> Set<AnyKeyPath>
+}
+
+extension ValueTypeKeyPathProvider where Self: JSONEncodeDecode {
     
-    let getValue: (Root) -> JSONValue?
+    public func customKeyPathList() -> [JSONableKeyPathObject] {
+        return []
+    }
     
-    private init<Value>(private: JSONValue?, name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> JSONValue?, customSet: @escaping (JSONValue) -> Value?) {
-        self.name = name
-        self.keyPath = keyPath
-        
-        getValue = { r in
-            let oldValue = r[keyPath: keyPath]
-            return customGet(oldValue)
+    public func encodeJsonExcludedKeys() -> Set<AnyKeyPath> {
+        return []
+    }
+    
+    public mutating func decodeFromJson(json: [String: JSONValue]) {
+        for kpObj in allKeyPathList() {
+            let newValue = json[kpObj.name]
+            if let me = kpObj.setValue(newValue, self) as? Self {
+                self = me
+            }
         }
-        setValue = { v, r in
-            if let v = v, let mo = customSet(v) {
-                r[keyPath: keyPath] = mo
+        for kpObj in customKeyPathList() {
+            let newValue = json[kpObj.name]
+            if let me = kpObj.setValue(newValue, self) as? Self {
+                self = me
             }
         }
     }
     
+    public func encodeToJson() -> [String: JSONValue] {
+        var json = [String: JSONValue]()
+        var allKeyPathDict: [AnyKeyPath: JSONableKeyPathObject] = [:]
+        for kpObj in allKeyPathList() {
+            allKeyPathDict[kpObj.keyPath] = kpObj
+        }
+        for kpObj in customKeyPathList() {
+            // custom的keyPath覆盖默认的allKeyPath
+            allKeyPathDict[kpObj.keyPath] = kpObj
+        }
+        let excludedKeys = encodeJsonExcludedKeys()
+        for keyvale in allKeyPathDict {
+            let (hash, chi) = keyvale
+            if excludedKeys.contains(hash) {
+                // 排除key
+                continue
+            }
+            let key = chi.name
+            json[key] = chi.getValue(self)
+        }
+        return json
+    }
+}
+
+public struct JSONableKeyPathObject {
+    
+    let name: String
+    let keyPath: AnyKeyPath
+    
+    let setValue: (JSONValue?, Any) -> Any
+    
+    let getValue: (Any) -> JSONValue?
+    
+    private init<Root, Value>(private: JSONValue?, name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> JSONValue?, customSet: @escaping (JSONValue) -> Value?) {
+        self.name = name
+        self.keyPath = keyPath
+        
+        getValue = { r in
+            guard let r = r as? Root else {
+                return nil
+            }
+            let oldValue = r[keyPath: keyPath]
+            return customGet(oldValue)
+        }
+        setValue = { v, r in
+            if let v = v, let mo = customSet(v), var r = r as? Root  {
+                r[keyPath: keyPath] = mo
+                return r
+            }
+            return r
+        }
+    }
+    
     /// 任意Any转Value的CustomMap方法，customGet必须返回JSON可接受类型
-    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> JSONValue?, customSet: @escaping (JSONValue) -> Value?) {
+    public init<Root, Value>(name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> JSONValue?, customSet: @escaping (JSONValue) -> Value?) {
         self.init(private: nil, name: name, keyPath: keyPath, customGet: customGet, customSet: customSet)
     }
     
     /// 未实现的类型，默认不转换（用于代码生成能编译通过）
-    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) {
+    public init<Root, Value>(name: String, keyPath: WritableKeyPath<Root, Value>) {
         self.init(private: nil, name: name, keyPath: keyPath) { v in
             return nil
         } customSet: { a in
@@ -128,7 +144,7 @@ public struct JSONableKeyPathObject<Root> {
     }
     
     /// Basic Value: String, Bool, Int, Double.... [Basic Value]
-    public init<Value>(name: String, keyPath: WritableKeyPath<Root, Value>) where Value: BasicValue {
+    public init<Root, Value>(name: String, keyPath: WritableKeyPath<Root, Value>) where Value: BasicValue {
         self.init(private: nil, name: name, keyPath: keyPath) { v in
             return v
         } customSet: { valueFromJson in
@@ -148,7 +164,7 @@ public struct JSONableKeyPathObject<Root> {
     }
     
     /// Enum
-    public init<EnumType>(name: String, keyPath: WritableKeyPath<Root, EnumType>) where EnumType: JSONableEnum {
+    public init<Root, EnumType>(name: String, keyPath: WritableKeyPath<Root, EnumType>) where EnumType: JSONableEnum {
         self.init(name: name, keyPath: keyPath) { enu in
             return enu.rawValue
         } customSet: { j in
@@ -164,7 +180,7 @@ public struct JSONableKeyPathObject<Root> {
 //    }
     
     /// Model
-    public init<Model>(name: String, keyPath: WritableKeyPath<Root, Model>) where Model: JSONable {
+    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Model>) where Model: JSONable {
         self.init(name: name, keyPath: keyPath) { model in
             return model.encodeToJson()
         } customSet: { j in
@@ -176,7 +192,7 @@ public struct JSONableKeyPathObject<Root> {
     }
     
     /// [Model]
-    public init<Model>(name: String, keyPath: WritableKeyPath<Root, Array<Model>>) where Model: JSONable {
+    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Array<Model>>) where Model: JSONable {
         self.init(name: name, keyPath: keyPath) { models in
             return models.map { j in
                 return j.encodeToJson()
@@ -188,7 +204,7 @@ public struct JSONableKeyPathObject<Root> {
     }
     
     /// [Model]?
-    public init<Model>(name: String, keyPath: WritableKeyPath<Root, Optional<Array<Model>>>) where Model: JSONable {
+    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Optional<Array<Model>>>) where Model: JSONable {
         self.init(name: name, keyPath: keyPath) { models in
             return models?.map { j in
                 return j.encodeToJson()

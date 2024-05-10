@@ -20,14 +20,14 @@ public struct MyJSONableMacro: ExtensionMacro, MemberMacro {
         let propertiesName = propertyContainer.memberProperties
         let typeName = propertyContainer.name ?? "Self"
         var codes: [String] = propertiesName.map { name in
-            return ".init(name: \"\(name)\", keyPath: \\.\(name)),"
+            return ".init(name: \"\(name)\", keyPath: \\\(typeName).\(name)),"
         }
 //        codes.insert("static var allKeyPathList: [MyJSONable.JSONableKeyPathObject<Self>] { return [", at: 0)
 //        codes.append("]}")
         
         // 用let比之前的var getter快很多，省略了重复初始化数组的时间
-        codes.insert("static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<\(typeName)>] = [", at: 0)
-        codes.append("]")
+        codes.insert("func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] { return [", at: 0)
+        codes.append("]}")
         return [
             DeclSyntax(stringLiteral: codes.joined(separator: "\n")),
         ]

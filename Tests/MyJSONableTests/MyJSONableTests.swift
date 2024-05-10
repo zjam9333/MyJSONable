@@ -5,11 +5,9 @@ import XCTest
 // Macro implementations build for the host, so the corresponding module is not available when cross-compiling. Cross-compiled tests may still make use of the macro itself in end-to-end tests.
 #if canImport(MyJSONableMacros)
 import MyJSONableMacros
-#endif
 
 final class MyJSONableTests: XCTestCase {
     
-#if canImport(MyJSONableMacros)
     
     func testMacroClass() throws {
         assertMacroExpansion(#"""
@@ -25,11 +23,13 @@ final class MyJSONableTests: XCTestCase {
                 var name2: String = ""
                 var stringList: [String]?
             
-                static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<ChildAnimal2>] = [
-                    .init(name: "age2", keyPath: \.age2),
-                    .init(name: "name2", keyPath: \.name2),
-                    .init(name: "stringList", keyPath: \.stringList),
-                ]
+                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                    return [
+                        .init(name: "age2", keyPath: \ChildAnimal2.age2),
+                        .init(name: "name2", keyPath: \ChildAnimal2.name2),
+                        .init(name: "stringList", keyPath: \ChildAnimal2.stringList),
+                    ]
+                }
             }
             """#, macros: ["JSONableMacro": MyJSONableMacro.self])
     }
@@ -71,11 +71,13 @@ final class MyJSONableTests: XCTestCase {
                     }
                 }
             
-                static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<Animal2>] = [
-                    .init(name: "boolVal", keyPath: \.boolVal),
-                    .init(name: "priv_p", keyPath: \.priv_p),
-                    .init(name: "setterGetter", keyPath: \.setterGetter),
-                ]
+                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                    return [
+                        .init(name: "boolVal", keyPath: \Animal2.boolVal),
+                        .init(name: "priv_p", keyPath: \Animal2.priv_p),
+                        .init(name: "setterGetter", keyPath: \Animal2.setterGetter),
+                    ]
+                }
             }
             """#,
         macros: ["JSONableMacro": MyJSONableMacro.self])
@@ -100,18 +102,59 @@ final class MyJSONableTests: XCTestCase {
                 var stringVal: String = ""
                 var child3: [String: Any] = [:]
             
-                static let allKeyPathList: [MyJSONable.JSONableKeyPathObject<Animal2>] = [
-                    .init(name: "boolVal", keyPath: \.boolVal),
-                    .init(name: "doubleVal", keyPath: \.doubleVal),
-                    .init(name: "intVal", keyPath: \.intVal),
-                    .init(name: "stringVal", keyPath: \.stringVal),
-                    .init(name: "child3", keyPath: \.child3),
-                ]
+                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                    return [
+                        .init(name: "boolVal", keyPath: \Animal2.boolVal),
+                        .init(name: "doubleVal", keyPath: \Animal2.doubleVal),
+                        .init(name: "intVal", keyPath: \Animal2.intVal),
+                        .init(name: "stringVal", keyPath: \Animal2.stringVal),
+                        .init(name: "child3", keyPath: \Animal2.child3),
+                    ]
+                }
             }
             """#,
             macros: ["JSONableMacro": MyJSONableMacro.self]
         )
     }
     
-    #endif
+    func testMacroWithCustomKey() throws {
+        assertMacroExpansion(#"""
+            @JSONableMacro
+            struct Animal2: MyJSONable.JSONable {
+                var boolVal: Bool = false
+                var doubleVal: Double = 0
+                func customKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                    return []
+                }
+                var intVal: Int = 0
+                var stringVal: String = ""
+                var child3: [String: Any] = [:]
+            }
+            """#,
+                             expandedSource: #"""
+            struct Animal2: MyJSONable.JSONable {
+                var boolVal: Bool = false
+                var doubleVal: Double = 0
+                func customKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                    return []
+                }
+                var intVal: Int = 0
+                var stringVal: String = ""
+                var child3: [String: Any] = [:]
+            
+                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                    return [
+                        .init(name: "boolVal", keyPath: \Animal2.boolVal),
+                        .init(name: "doubleVal", keyPath: \Animal2.doubleVal),
+                        .init(name: "intVal", keyPath: \Animal2.intVal),
+                        .init(name: "stringVal", keyPath: \Animal2.stringVal),
+                        .init(name: "child3", keyPath: \Animal2.child3),
+                    ]
+                }
+            }
+            """#,
+                             macros: ["JSONableMacro": MyJSONableMacro.self]
+        )
+    }
 }
+#endif

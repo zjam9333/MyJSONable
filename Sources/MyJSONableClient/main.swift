@@ -59,9 +59,9 @@ struct Animal2: MyJSONable.JSONable {
         return "sfd"
     }
     
-    static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
-        .init(name: "cccc", keyPath: \.children2),
-        .init(name: "birthday", keyPath: \.birthday, customGet: { someDate in
+    static let customKeyPathList: [JSONableKeyPathObject] = [
+        .init(name: "cccc", keyPath: \Self.children2),
+        .init(name: "birthday", keyPath: \Self.birthday, customGet: { someDate in
             return someDate?.timeIntervalSince1970
         }, customSet: { someI in
             if let interv = someI as? TimeInterval {
@@ -119,3 +119,5 @@ print("\nbefor set", String(describing: animal.encodeToJsonString()!), separator
 animal.decodeFromJson(json: json)
 
 print("\nafter set", String(describing: animal.encodeToJsonString()!), separator: "\n")
+
+ClassTest.test()
