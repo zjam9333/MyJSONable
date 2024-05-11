@@ -2,9 +2,20 @@
 
 JSON to Model, Model to JSON
 
+## Version
+
+### 1.0.0
+- 基础功能 JSONable + JSONableMacro宏
+
+### 1.0.1
+- 子类继承专用宏`JSONableSubclassMacro`
+- JSONable协议拆分为`ValueTypeKeyPathProvider & JSONEncodeDecode`
+- ValueTypeKeyPathProvider将原有的`static var allKeyPathList`改为`func allKeyPathList()`
+
 ## Implement
 
 通过简单的keyPaths遍历实现property写入
+Decoding Json values to Model properties via keyPaths
 
 ## Install
 
@@ -45,13 +56,12 @@ let json: [String: Any] = [
     ],
 ]
 
-print("\nbefor set", String(describing: animal.encodeToJsonString()!), separator: "\n")
 animal.decodeFromJson(json: json)
 
-print("\nafter set", String(describing: animal.encodeToJsonString()!), separator: "\n")
+let jsonString = animal.encodeToJsonString()
 ```
 
-use `@JSONableMacro` macro to auto generate `allKeyPathList` getter, or write manually
+use `@JSONableMacro` macro to auto generate `allKeyPathList` function, otherwise, write this manually
 
 ### class 
 
@@ -63,6 +73,29 @@ final class ChildAnimal2: MyJSONable.JSONable {
     var age2: Int = 0
     var name2: String = ""
     var stringList: [String]?
+}
+```
+
+### class inherit
+
+if your superclass is JSONable, use macro JSONableSubclassMacro
+
+```
+@JSONableMacro
+class Person: JSONable {
+    var boolVal: Bool?
+    var doubleVal: Double?
+    var intVal: Int?
+    var stringVal: String?
+    
+    required init() {
+    }
+}
+
+@JSONableSubclassMacro
+class Student: Person {
+    var name: String?
+    var id: Int = 0
 }
 ```
 

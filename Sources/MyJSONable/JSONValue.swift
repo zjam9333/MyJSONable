@@ -25,7 +25,7 @@ extension Optional: JSONable where Wrapped: JSONable {
         self = .none
     }
     
-    public static var allKeyPathList: [JSONableKeyPathObject<Self>] {
+    public func allKeyPathList() -> [JSONableKeyPathObject] {
         return []
     }
     

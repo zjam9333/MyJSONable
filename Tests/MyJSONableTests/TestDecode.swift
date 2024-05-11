@@ -12,7 +12,7 @@ import XCTest
 
 import MyJSONable
 
-final class DecodeTests: XCTestCase {
+final class TestDecode: XCTestCase {
     
     @JSONableMacro
     struct BasicAnimal: JSONable {
@@ -147,9 +147,11 @@ final class DecodeTests: XCTestCase {
             case fish = "fish"
         }
         
-        static let customKeyPathList: [JSONableKeyPathObject<DecodeTests.CustomKeyAnimal>] = [
-            .init(name: "ggg", keyPath: \.pet)
-        ]
+        func customKeyPathList() -> [JSONableKeyPathObject] {
+            return [
+                .init(name: "ggg", keyPath: \Self.pet)
+            ]
+        }
     }
     
     func testCustomKey() throws {
@@ -177,20 +179,22 @@ final class DecodeTests: XCTestCase {
             case fish = "fish"
         }
         
-        static let customKeyPathList: [JSONableKeyPathObject<DecodeTests.CustomSetterAnimal>] = [
-            .init(name: "ggg", keyPath: \.pet, customGet: { p in
-                return p.rawValue
-            }, customSet: { j in
-                if let j = j as? Int {
-                    if j > 10 {
-                        return .fish
-                    } else {
-                        return .dog
+        func customKeyPathList() -> [JSONableKeyPathObject] {
+            return [
+                .init(name: "ggg", keyPath: \Self.pet) { p in
+                    return p.rawValue
+                } customSet: { j in
+                    if let j = j as? Int {
+                        if j > 10 {
+                            return .fish
+                        } else {
+                            return .dog
+                        }
                     }
+                    return nil
                 }
-                return nil
-            })
-        ]
+            ]
+        }
     }
     
     func testCustomSetter() throws {
@@ -252,6 +256,39 @@ final class DecodeTests: XCTestCase {
             "boolVal": 1,
         ])
         XCTAssert(an.boolVal == true)
+    }
+    
+    @JSONableMacro
+    struct ExcludeKeyAnimal: JSONable {
+        var boolVal: Bool?
+        var doubleVal: Double?
+        var intVal: Int?
+        var stringVal: String?
+        
+        func encodeJsonExcludedKeys() -> Set<AnyKeyPath> {
+            return [\Self.stringVal]
+        }
+    }
+    
+    func testValueExcludeKey() throws {
+        typealias Model = ExcludeKeyAnimal
+        var an: Model
+        
+        an = Model()
+        an.decodeFromJson(json: [
+            "boolVal": 999,
+            "doubleVal": "3.14",
+            "intVal": "999",
+            "stringVal": 1999.99
+        ])
+        XCTAssert(an.boolVal == true)
+        XCTAssert(an.doubleVal == 3.14)
+        XCTAssert(an.intVal == 999)
+        XCTAssert(an.stringVal == "1999.99")
+        let json = an.encodeToJson()
+        XCTAssert(json["boolVal"] as? Bool == true)
+        // key "stringVal" not exist in json
+        XCTAssert(json["stringVal"] == nil)
     }
 }
 
