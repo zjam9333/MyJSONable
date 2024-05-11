@@ -6,38 +6,42 @@ import XCTest
 #if canImport(MyJSONableMacros)
 import MyJSONableMacros
 
-final class MyJSONableTests: XCTestCase {
-    
+final class TestMacro: XCTestCase {
     
     func testMacroClass() throws {
         assertMacroExpansion(#"""
             @JSONableMacro
-            final class ChildAnimal2: MyJSONable.JSONable {
-                var age2: Int = 0
-                var name2: String = ""
-                var stringList: [String]?
+            class ClassAnimal: JSONable {
+                var boolVal: Bool?
+                var doubleVal: Double?
+                var intVal: Int?
+                var stringVal: String?
+                required init() {}
             }
             """#, expandedSource: #"""
-            final class ChildAnimal2: MyJSONable.JSONable {
-                var age2: Int = 0
-                var name2: String = ""
-                var stringList: [String]?
+            class ClassAnimal: JSONable {
+                var boolVal: Bool?
+                var doubleVal: Double?
+                var intVal: Int?
+                var stringVal: String?
+                required init() {}
             
-                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                func allKeyPathList() -> [JSONableKeyPathObject] {
                     return [
-                        .init(name: "age2", keyPath: \ChildAnimal2.age2),
-                        .init(name: "name2", keyPath: \ChildAnimal2.name2),
-                        .init(name: "stringList", keyPath: \ChildAnimal2.stringList),
+                        .init(name: "boolVal", keyPath: \ClassAnimal.boolVal),
+                        .init(name: "doubleVal", keyPath: \ClassAnimal.doubleVal),
+                        .init(name: "intVal", keyPath: \ClassAnimal.intVal),
+                        .init(name: "stringVal", keyPath: \ClassAnimal.stringVal),
                     ]
                 }
             }
-            """#, macros: ["JSONableMacro": MyJSONableMacro.self])
+            """#, macros: ["JSONableMacro": JSONableMacro.self])
     }
     
     func testMacroVarGetter() throws {
         assertMacroExpansion(#"""
             @JSONableMacro
-            struct Animal2: MyJSONable.JSONable {
+            struct Animal2: JSONable {
                 var boolVal: Bool = false
                 var otherFunction: String {
                     return "sfd"
@@ -53,9 +57,8 @@ final class MyJSONableTests: XCTestCase {
                     }
                 }
             }
-            """#,
-        expandedSource:#"""
-            struct Animal2: MyJSONable.JSONable {
+            """#, expandedSource:#"""
+            struct Animal2: JSONable {
                 var boolVal: Bool = false
                 var otherFunction: String {
                     return "sfd"
@@ -71,7 +74,7 @@ final class MyJSONableTests: XCTestCase {
                     }
                 }
             
-                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                func allKeyPathList() -> [JSONableKeyPathObject] {
                     return [
                         .init(name: "boolVal", keyPath: \Animal2.boolVal),
                         .init(name: "priv_p", keyPath: \Animal2.priv_p),
@@ -79,14 +82,13 @@ final class MyJSONableTests: XCTestCase {
                     ]
                 }
             }
-            """#,
-        macros: ["JSONableMacro": MyJSONableMacro.self])
+            """#, macros: ["JSONableMacro": JSONableMacro.self])
     }
     
     func testMacroWithJSONable() throws {
         assertMacroExpansion(#"""
             @JSONableMacro
-            struct Animal2: MyJSONable.JSONable {
+            struct Animal2: JSONable {
                 var boolVal: Bool = false
                 var doubleVal: Double = 0
                 var intVal: Int = 0
@@ -95,14 +97,14 @@ final class MyJSONableTests: XCTestCase {
             }
             """#,
             expandedSource: #"""
-            struct Animal2: MyJSONable.JSONable {
+            struct Animal2: JSONable {
                 var boolVal: Bool = false
                 var doubleVal: Double = 0
                 var intVal: Int = 0
                 var stringVal: String = ""
                 var child3: [String: Any] = [:]
             
-                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                func allKeyPathList() -> [JSONableKeyPathObject] {
                     return [
                         .init(name: "boolVal", keyPath: \Animal2.boolVal),
                         .init(name: "doubleVal", keyPath: \Animal2.doubleVal),
@@ -112,37 +114,35 @@ final class MyJSONableTests: XCTestCase {
                     ]
                 }
             }
-            """#,
-            macros: ["JSONableMacro": MyJSONableMacro.self]
+            """#, macros: ["JSONableMacro": JSONableMacro.self]
         )
     }
     
     func testMacroWithCustomKey() throws {
         assertMacroExpansion(#"""
             @JSONableMacro
-            struct Animal2: MyJSONable.JSONable {
+            struct Animal2: JSONable {
                 var boolVal: Bool = false
                 var doubleVal: Double = 0
-                func customKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                func customKeyPathList() -> [JSONableKeyPathObject] {
                     return []
                 }
                 var intVal: Int = 0
                 var stringVal: String = ""
                 var child3: [String: Any] = [:]
             }
-            """#,
-                             expandedSource: #"""
-            struct Animal2: MyJSONable.JSONable {
+            """#, expandedSource: #"""
+            struct Animal2: JSONable {
                 var boolVal: Bool = false
                 var doubleVal: Double = 0
-                func customKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                func customKeyPathList() -> [JSONableKeyPathObject] {
                     return []
                 }
                 var intVal: Int = 0
                 var stringVal: String = ""
                 var child3: [String: Any] = [:]
             
-                func allKeyPathList() -> [MyJSONable.JSONableKeyPathObject] {
+                func allKeyPathList() -> [JSONableKeyPathObject] {
                     return [
                         .init(name: "boolVal", keyPath: \Animal2.boolVal),
                         .init(name: "doubleVal", keyPath: \Animal2.doubleVal),
@@ -152,9 +152,56 @@ final class MyJSONableTests: XCTestCase {
                     ]
                 }
             }
-            """#,
-                             macros: ["JSONableMacro": MyJSONableMacro.self]
+            """#, macros: ["JSONableMacro": JSONableMacro.self]
         )
+    }
+    
+    func testMacroWithClassInherit() throws {
+        assertMacroExpansion(#"""
+            @JSONableMacro
+            class ClassRoot00: AJ1.AJ2.AJ3.JSONable {
+                var boolVal: Bool?
+                var doubleVal: Double?
+                var intVal: Int?
+                var stringVal: String?
+            
+                required init() {}
+            }
+            @JSONableSubclassMacro
+            class ClassLeave33: ClassRoot00, JSONable {
+                var name: String?
+            }
+            """#, expandedSource: #"""
+            class ClassRoot00: AJ1.AJ2.AJ3.JSONable {
+                var boolVal: Bool?
+                var doubleVal: Double?
+                var intVal: Int?
+                var stringVal: String?
+            
+                required init() {}
+            
+                func allKeyPathList() -> [JSONableKeyPathObject] {
+                    return [
+                        .init(name: "boolVal", keyPath: \ClassRoot00.boolVal),
+                        .init(name: "doubleVal", keyPath: \ClassRoot00.doubleVal),
+                        .init(name: "intVal", keyPath: \ClassRoot00.intVal),
+                        .init(name: "stringVal", keyPath: \ClassRoot00.stringVal),
+                    ]
+                }
+            }
+            class ClassLeave33: ClassRoot00, JSONable {
+                var name: String?
+            
+                override func allKeyPathList() -> [JSONableKeyPathObject] {
+                    let mines: [JSONableKeyPathObject] = [
+                        .init(name: "name", keyPath: \ClassLeave33.name),
+                    ]
+                    var ours = super.allKeyPathList()
+                    ours.append(contentsOf: mines)
+                    return ours
+                }
+            }
+            """#, macros: ["JSONableMacro": JSONableMacro.self, "JSONableSubclassMacro": JSONableSubclassMacro.self])
     }
 }
 #endif

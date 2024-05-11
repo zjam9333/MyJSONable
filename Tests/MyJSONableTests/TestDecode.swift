@@ -12,7 +12,7 @@ import XCTest
 
 import MyJSONable
 
-final class DecodeTests: XCTestCase {
+final class TestDecode: XCTestCase {
     
     @JSONableMacro
     struct BasicAnimal: JSONable {
