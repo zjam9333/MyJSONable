@@ -12,8 +12,8 @@ news:
 - 子类继承专用宏`JSONableSubclassMacro`
 
 changes:
-- JSONable协议拆分为`ValueTypeKeyPathProvider & JSONEncodeDecode`
-- ValueTypeKeyPathProvider将原有的`static var allKeyPathList`改为`func allKeyPathList()`
+- JSONable协议拆分为`KeyPathListProvider & JSONEncodeDecode`
+- KeyPathListProvider将原有的`static var allKeyPathList`改为`func allKeyPathList()`
 - JSONableKeyPathObject去除了泛型，keyPath需要补全Root类型，例如`\.name`改为`\XXStruct.name`
 
 ## Implement
