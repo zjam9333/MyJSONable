@@ -10,7 +10,7 @@ import Foundation
 /// 来自JSON的值
 public typealias JSONValue = Any
 
-extension Array where Element: JSONable {
+extension Array where Element: JSONEncodeDecode {
     public init(jsonArray: [[String: JSONValue]]) {
         self = jsonArray.map{ d in
             var m = Element()
@@ -20,7 +20,7 @@ extension Array where Element: JSONable {
     }
 }
 
-extension Optional: JSONable where Wrapped: JSONable {
+extension Optional: JSONable where Wrapped: JSONEncodeDecode {
     public init() {
         self = .none
     }

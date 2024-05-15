@@ -7,7 +7,7 @@
 
 import Foundation
 
-public typealias JSONable = ValueTypeKeyPathProvider & JSONEncodeDecode
+public typealias JSONable = KeyPathListProvider & JSONEncodeDecode
 
 public protocol JSONEncodeDecode {
     mutating func decodeFromJson(json: [String: JSONValue])
@@ -40,7 +40,7 @@ extension JSONEncodeDecode {
     }
 }
 
-public protocol ValueTypeKeyPathProvider {
+public protocol KeyPathListProvider {
     /// 写入属性必要的列表，可用Macro生成
     func allKeyPathList() -> [JSONableKeyPathObject]
     
@@ -51,7 +51,7 @@ public protocol ValueTypeKeyPathProvider {
     func encodeJsonExcludedKeys() -> Set<AnyKeyPath>
 }
 
-extension ValueTypeKeyPathProvider where Self: JSONEncodeDecode {
+extension KeyPathListProvider where Self: JSONEncodeDecode {
     
     public func customKeyPathList() -> [JSONableKeyPathObject] {
         return []
@@ -63,16 +63,10 @@ extension ValueTypeKeyPathProvider where Self: JSONEncodeDecode {
     
     public mutating func decodeFromJson(json: [String: JSONValue]) {
         for kpObj in allKeyPathList() {
-            let newValue = json[kpObj.name]
-            if let me = kpObj.setValue(newValue, self) as? Self {
-                self = me
-            }
+            self = kpObj.setValue(json[kpObj.name], self) as? Self ?? self
         }
         for kpObj in customKeyPathList() {
-            let newValue = json[kpObj.name]
-            if let me = kpObj.setValue(newValue, self) as? Self {
-                self = me
-            }
+            self = kpObj.setValue(json[kpObj.name], self) as? Self ?? self
         }
     }
     
@@ -121,10 +115,16 @@ public struct JSONableKeyPathObject {
             return customGet(oldValue)
         }
         setValue = { v, r in
-            if let v = v, let mo = customSet(v), var r = r as? Root  {
-                r[keyPath: keyPath] = mo
+            guard let v = v else {
+                return r
+            } 
+            guard var r = r as? Root else {
                 return r
             }
+            guard let mo = customSet(v) else {
+                return r
+            }
+            r[keyPath: keyPath] = mo
             return r
         }
     }
@@ -180,7 +180,7 @@ public struct JSONableKeyPathObject {
 //    }
     
     /// Model
-    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Model>) where Model: JSONable {
+    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Model>) where Model: JSONEncodeDecode {
         self.init(name: name, keyPath: keyPath) { model in
             return model.encodeToJson()
         } customSet: { j in
@@ -192,7 +192,7 @@ public struct JSONableKeyPathObject {
     }
     
     /// [Model]
-    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Array<Model>>) where Model: JSONable {
+    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Array<Model>>) where Model: JSONEncodeDecode {
         self.init(name: name, keyPath: keyPath) { models in
             return models.map { j in
                 return j.encodeToJson()
@@ -204,7 +204,7 @@ public struct JSONableKeyPathObject {
     }
     
     /// [Model]?
-    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Optional<Array<Model>>>) where Model: JSONable {
+    public init<Root, Model>(name: String, keyPath: WritableKeyPath<Root, Optional<Array<Model>>>) where Model: JSONEncodeDecode {
         self.init(name: name, keyPath: keyPath) { models in
             return models?.map { j in
                 return j.encodeToJson()

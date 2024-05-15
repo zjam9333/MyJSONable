@@ -7,14 +7,19 @@ JSON to Model, Model to JSON
 ### 1.0.0
 - 基础功能 JSONable + JSONableMacro宏
 
-### 1.0.1
+### 1.1.0
+news: 
 - 子类继承专用宏`JSONableSubclassMacro`
-- JSONable协议拆分为`ValueTypeKeyPathProvider & JSONEncodeDecode`
-- ValueTypeKeyPathProvider将原有的`static var allKeyPathList`改为`func allKeyPathList()`
+
+changes:
+- JSONable协议拆分为`KeyPathListProvider & JSONEncodeDecode`
+- KeyPathListProvider将原有的`static var allKeyPathList`改为`func allKeyPathList()`
+- JSONableKeyPathObject去除了泛型，keyPath需要补全Root类型，例如`\.name`改为`\XXStruct.name`
 
 ## Implement
 
 通过简单的keyPaths遍历实现property写入
+
 Decoding Json values to Model properties via keyPaths
 
 ## Install
@@ -121,9 +126,11 @@ Different key from json
 example using key `"cccc"` for property `var children2`
 
 ```swift
-static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
-    .init(name: "cccc", keyPath: \.children2)
+func customKeyPathList() -> [JSONableKeyPathObject] { 
+    return [
+        .init(name: "cccc", keyPath: \Animal2.children2)
     ]
+}
 ```
 
 ### Custom value mapper 自定义类型的转化
@@ -133,16 +140,18 @@ mapper `JsonValue <--> ModelValue`
 example `var birthday: Date?`
 
 ```swift
-static let customKeyPathList: [JSONableKeyPathObject<Animal2>] = [
-    .init(name: "birthday", keyPath: \.birthday, customGet: { someDate in
-        return someDate?.timeIntervalSince1970
-    }, customSet: { someI in
-        if let interv = someI as? TimeInterval {
-            return Date(timeIntervalSince1970: interv)
-        }
-        return nil
-    }),
-]
+func customKeyPathList() -> [JSONableKeyPathObject] { 
+    return [
+        .init(name: "birthday", keyPath: \Animal2.birthday, customGet: { someDate in
+            return someDate?.timeIntervalSince1970
+        }, customSet: { someI in
+            if let interv = someI as? TimeInterval {
+                return Date(timeIntervalSince1970: interv)
+            }
+            return nil
+        }),
+    ]
+}
 ```
 
 ### Exclude Keys to JSON 输出Json时排除特定key
@@ -155,8 +164,8 @@ struct Animal_M: JSONable {
     var name: String = "Cat"
     var price: String = "Value not to JSON"
     
-    static let encodeJsonExcludedKeys: Set<PartialKeyPath<Animal2>> = [
-        \.price,
-    ]
+    func encodeJsonExcludedKeys() -> Set<AnyKeyPath> {
+        return [\Animal_M.price,]
+    }
 }
 ```
