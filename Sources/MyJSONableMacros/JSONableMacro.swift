@@ -7,10 +7,7 @@ public struct JSONableError: CustomStringConvertible, Error {
     public private(set) var description: String
 }
 
-public struct JSONableMacro: ExtensionMacro, MemberMacro {
-    public static func expansion(of node: AttributeSyntax, attachedTo declaration: some DeclGroupSyntax, providingExtensionsOf type: some TypeSyntaxProtocol, conformingTo protocols: [TypeSyntax], in context: some MacroExpansionContext) throws -> [ExtensionDeclSyntax] {
-        return []
-    }
+public struct JSONableMacro: MemberMacro {
     
     public static func expansion(of node: SwiftSyntax.AttributeSyntax, providingMembersOf declaration: some SwiftSyntax.DeclGroupSyntax, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax] {
         let macroName = String(describing: Self.self)
@@ -42,10 +39,7 @@ public struct JSONableMacro: ExtensionMacro, MemberMacro {
     }
 }
 
-public struct JSONableSubclassMacro: ExtensionMacro, MemberMacro {
-    public static func expansion(of node: AttributeSyntax, attachedTo declaration: some DeclGroupSyntax, providingExtensionsOf type: some TypeSyntaxProtocol, conformingTo protocols: [TypeSyntax], in context: some MacroExpansionContext) throws -> [ExtensionDeclSyntax] {
-        return []
-    }
+public struct JSONableSubclassMacro: MemberMacro {
     
     public static func expansion(of node: SwiftSyntax.AttributeSyntax, providingMembersOf declaration: some SwiftSyntax.DeclGroupSyntax, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax] {
         let macroName = String(describing: Self.self)
