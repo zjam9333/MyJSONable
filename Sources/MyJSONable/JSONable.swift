@@ -9,6 +9,10 @@ import Foundation
 
 public typealias JSONable = KeyPathListProvider & JSONEncodeDecode
 
+/// 兼容旧版协议名称，新名称为KeyPathListProvider
+@available(*, deprecated, message: "Use KeyPathListProvider instead.")
+public typealias ValueTypeKeyPathProvider = KeyPathListProvider
+
 public protocol JSONEncodeDecode {
     mutating func decodeFromJson(json: [String: JSONValue])
     init(fromJson json: [String: JSONValue])

@@ -60,6 +60,7 @@ print(String(describing: ca))
 assert(ca.intVal == 999)
 assert(ca.name == "hello")
 let toJson = ca.encodeToJson()
-assert(toJson["date"] as? Date != nil)
+assert(toJson["date"] as? Date == nil)
+assert(toJson["date2"] as? Date != nil)
 
 let ta = JSONableKeyPathObject(name: "da", keyPath: \Person.date)

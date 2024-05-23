@@ -5,16 +5,31 @@ JSON to Model, Model to JSON
 ## Version
 
 ### 1.0.0
+
 - 基础功能 JSONable + JSONableMacro宏
 
 ### 1.1.0
+
 news: 
+
 - 子类继承专用宏`JSONableSubclassMacro`
 
 changes:
+
 - JSONable协议拆分为`KeyPathListProvider & JSONEncodeDecode`
 - KeyPathListProvider将原有的`static var allKeyPathList`改为`func allKeyPathList()`
-- JSONableKeyPathObject去除了泛型，keyPath需要补全Root类型，例如`\.name`改为`\XXStruct.name`
+- JSONableKeyPathObject去除了泛型，keyPath需要补全Root类型，例如`\.name`改为`\XXX.name`
+
+issues:
+
+- class继承时，混用父类keyPath和子类keyPath，导致`encodeJsonExcludedKeys`无法正确排除
+
+### 1.1.1
+
+changes:
+
+- `ValueTypeKeyPathProvider`名称标记为废弃
+- macro实现去除`ExtensionMacro`协议实现
 
 ## Implement
 
@@ -85,7 +100,7 @@ final class ChildAnimal2: MyJSONable.JSONable {
 
 if your superclass is JSONable, use macro JSONableSubclassMacro
 
-```
+```swift
 @JSONableMacro
 class Person: JSONable {
     var boolVal: Bool?
