@@ -6,3 +6,6 @@ public macro JSONableMacro() = #externalMacro(module: "MyJSONableMacros", type: 
 
 @attached(member, names: arbitrary)
 public macro JSONableSubclassMacro() = #externalMacro(module: "MyJSONableMacros", type: "JSONableSubclassMacro")
+
+@attached(peer)
+public macro JSONableCustomKey(_ key: String) = #externalMacro(module: "MyJSONableMacros", type: "JSONableCustomKeyMacro")
