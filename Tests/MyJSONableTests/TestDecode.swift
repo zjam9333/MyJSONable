@@ -290,6 +290,47 @@ final class TestDecode: XCTestCase {
         // key "stringVal" not exist in json
         XCTAssert(json["stringVal"] == nil)
     }
+    
+    @JSONableMacro
+    struct NewCustomKeyModel: JSONable {
+        var a, b, c, d, e, f, g, h, i: String?
+        @JSONableCustomKey("bbb")
+        var boolVal: Bool?
+        @JSONableCustomKey("ddd")
+        var doubleVal: Double?
+        @JSONableCustomKey("iii")
+        var intVal: Int?
+    }
+    
+    func testNewCustomKey() throws {
+        typealias Model = NewCustomKeyModel
+        var an = Model()
+        an.decodeFromJson(json: [
+            "bbb": true,
+            "ddd": 3.14,
+            "iii": 999,
+        ])
+        XCTAssert(an.boolVal == true)
+        XCTAssert(an.doubleVal == 3.14)
+        XCTAssert(an.intVal == 999)
+        let json = an.encodeToJson()
+        XCTAssert(json["bbb"] as? Bool == true)
+        XCTAssert(json["ddd"] as? Double == 3.14)
+        XCTAssert(json["iii"] as? Int == 999)
+    }
+    
+    func testPropertyDefineStringKey() throws {
+        typealias Model = NewCustomKeyModel
+        var an = Model()
+        an.decodeFromJson(json: [
+            "a": "a",
+            "b": "b",
+            "c": "c",
+        ])
+        XCTAssert(an.a == "a")
+        XCTAssert(an.b == "b")
+        XCTAssert(an.c == "c")
+    }
 }
 
 #endif

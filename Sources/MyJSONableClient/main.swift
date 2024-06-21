@@ -64,3 +64,15 @@ assert(toJson["date"] as? Date == nil)
 assert(toJson["date2"] as? Date != nil)
 
 let ta = JSONableKeyPathObject(name: "da", keyPath: \Person.date)
+
+@JSONableMacro
+struct Person22: JSONable {
+    
+    var b, c, d: Int?
+    @JSONableCustomKey("personName")
+    var a: Int?
+    
+    var intVal: Int?
+    var stringVal: String?
+    var date: Date = Date()
+}

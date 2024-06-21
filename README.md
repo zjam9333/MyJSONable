@@ -31,6 +31,16 @@ changes:
 - `ValueTypeKeyPathProvider`名称标记为废弃
 - macro实现去除`ExtensionMacro`协议实现
 
+### 1.1.2
+
+news:
+
+- 新增自定义key宏`JSONableCustomKey`，标记于属性前面
+
+changes & fixed: 
+
+- 修复了连续定义的属性keyPathList代码生成缺少变量，例如`var a, b, c, d: String?`
+
 ## Implement
 
 通过简单的keyPaths遍历实现property写入
@@ -146,6 +156,13 @@ func customKeyPathList() -> [JSONableKeyPathObject] {
         .init(name: "cccc", keyPath: \Animal2.children2)
     ]
 }
+```
+
+or simple style:
+
+```
+@JSONableCustomKey("cccc")
+var children2: Child?
 ```
 
 ### Custom value mapper 自定义类型的转化

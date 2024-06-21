@@ -38,6 +38,34 @@ final class TestMacro: XCTestCase {
             """#, macros: ["JSONableMacro": JSONableMacro.self])
     }
     
+    func testCustomKeyClass() throws {
+        assertMacroExpansion(#"""
+            @JSONableMacro
+            class ClassAnimal: JSONable {
+                var a, b, c, d: Int?
+                @JSONableCustomKey("strrrrrr")
+                var stringVal: String?
+                required init() {}
+            }
+            """#, expandedSource: #"""
+            class ClassAnimal: JSONable {
+                var a, b, c, d: Int?
+                var stringVal: String?
+                required init() {}
+            
+                func allKeyPathList() -> [JSONableKeyPathObject] {
+                    return [
+                        .init(name: "a", keyPath: \ClassAnimal.a),
+                        .init(name: "b", keyPath: \ClassAnimal.b),
+                        .init(name: "c", keyPath: \ClassAnimal.c),
+                        .init(name: "d", keyPath: \ClassAnimal.d),
+                        .init(name: "strrrrrr", keyPath: \ClassAnimal.stringVal),
+                    ]
+                }
+            }
+            """#, macros: ["JSONableMacro": JSONableMacro.self, "JSONableCustomKey": JSONableCustomKeyMacro.self])
+    }
+    
     func testMacroVarGetter() throws {
         assertMacroExpansion(#"""
             @JSONableMacro

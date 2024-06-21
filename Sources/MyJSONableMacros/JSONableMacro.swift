@@ -28,8 +28,8 @@ public struct JSONableMacro: MemberMacro {
             return []
         }
         
-        var codes: [String] = declCheck.memberProperties.map { name in
-            return ".init(name: \"\(name)\", keyPath: \\\(typeName).\(name)),"
+        var codes: [String] = declCheck.memberProperties.flatMap { name in
+            return name.customKeyPathInitCode(typeName: typeName)
         }
         codes.insert("func allKeyPathList() -> [JSONableKeyPathObject] { return [", at: 0)
         codes.append("]}")
@@ -56,8 +56,8 @@ public struct JSONableSubclassMacro: MemberMacro {
             return []
         }
         
-        var codes: [String] = declCheck.memberProperties.map { name in
-            return ".init(name: \"\(name)\", keyPath: \\\(typeName).\(name)),"
+        var codes: [String] = declCheck.memberProperties.flatMap { name in
+            return name.customKeyPathInitCode(typeName: typeName)
         }
         codes.insert(#"""
         override func allKeyPathList() -> [JSONableKeyPathObject] {
@@ -76,10 +76,39 @@ public struct JSONableSubclassMacro: MemberMacro {
     }
 }
 
+public struct JSONableCustomKeyMacro: PeerMacro {
+    public static func expansion(of node: SwiftSyntax.AttributeSyntax, providingPeersOf declaration: some SwiftSyntax.DeclSyntaxProtocol, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax] {
+        guard let variable = declaration.as(VariableDeclSyntax.self) else {
+            throw JSONableError(description: "attached on properties only")
+        }
+        let property = PropertyStruct(variable: variable, igoreAttribute: true)
+        if property.names.count > 1 {
+            throw JSONableError(description: "required 1 property name only, found \(property.names.count), write variable code separately")
+        }
+        return []
+    }
+}
+
+extension PropertyStruct {
+    func customKeyPathInitCode(typeName: String) -> [String] {
+        return names.map { name in
+            var customKey = name
+            let firstJSONableCustomKeyAttr = attributes.first { attr in
+                return attr.name == "JSONableCustomKey"
+            }
+            if let attr = firstJSONableCustomKeyAttr, let firstArg = attr.arguments.first, firstArg.isEmpty == false {
+                customKey = firstArg
+            }
+            return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name)),"
+        }
+    }
+}
+
 @main
 struct MyJSONablePlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         JSONableMacro.self,
-        JSONableSubclassMacro.self
+        JSONableSubclassMacro.self,
+        JSONableCustomKeyMacro.self,
     ]
 }

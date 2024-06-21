@@ -54,18 +54,16 @@ struct DeclCheck {
         return Set(toStrings ?? [])
     }
     
-    var memberProperties: [String] {
+    var memberProperties: [PropertyStruct] {
         let memberList = decl.memberBlock.members
-        let memberProperties = memberList.flatMap { member -> [String] in
+        let memberProperties = memberList.flatMap { member -> [PropertyStruct] in
             guard let variable = member.decl.as(VariableDeclSyntax.self) else {
                 return []
             }
             guard isVarSetableProperty(syntax: variable) else {
                 return []
             }
-            let patterns = variable.bindings.map(\.pattern)
-            let names = patterns.compactMap { $0.as(IdentifierPatternSyntax.self)?.identifier.text }
-            return names
+            return [PropertyStruct(variable: variable)]
         }
         return memberProperties
     }
@@ -124,5 +122,59 @@ struct DeclCheck {
             return false
         }
         return true
+    }
+}
+
+///
+/// the Structure of Property
+///
+/// something like:
+/// ### no attributes
+/// ```swift
+/// var names: String?
+/// ```
+/// ### has attributes
+/// ```swift
+/// @Attr1(arg0, arg1) @Attr2(arg0, arg1) var names: String?
+/// ```
+struct PropertyStruct {
+    
+    struct AttributeSt {
+        let name: String
+        let arguments: [String]
+    }
+    
+    let attributes: [AttributeSt]
+    let names: [String]
+    
+    init(variable: VariableDeclSyntax, igoreAttribute: Bool = false) {
+        names = variable.bindings.map(\.pattern).compactMap { sy in
+            return sy.as(IdentifierPatternSyntax.self)?.identifier.text
+        }
+        if igoreAttribute {
+            attributes = []
+            return
+        }
+        attributes = variable.attributes.compactMap { attrSyn in
+            guard let attr = attrSyn.as(AttributeSyntax.self) else {
+                return nil
+            }
+            guard let name: String = attr.attributeName.as(IdentifierTypeSyntax.self)?.name.text else {
+                return nil
+            }
+            let arguments: [String] = attr.arguments?.as(LabeledExprListSyntax.self)?.compactMap { label in
+                guard let express = label.expression.as(StringLiteralExprSyntax.self) else {
+                    return nil
+                }
+                guard let first = express.segments.first else {
+                    return nil
+                }
+                guard let stringSegment = first.as(StringSegmentSyntax.self) else {
+                    return nil
+                }
+                return stringSegment.content.text
+            } ?? []
+            return AttributeSt(name: name, arguments: arguments)
+        }
     }
 }
