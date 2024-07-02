@@ -89,17 +89,34 @@ public struct JSONableCustomKeyMacro: PeerMacro {
     }
 }
 
+public struct JSONableCustomDateMacro: PeerMacro {
+    public static func expansion(of node: SwiftSyntax.AttributeSyntax, providingPeersOf declaration: some SwiftSyntax.DeclSyntaxProtocol, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax] {
+        guard let variable = declaration.as(VariableDeclSyntax.self) else {
+            throw JSONableError(description: "attached on properties only")
+        }
+        let property = PropertyStruct(variable: variable, igoreAttribute: true)
+        if property.names.count > 1 {
+            throw JSONableError(description: "required 1 Date property name only, found \(property.names.count), write variable code separately")
+        }
+        return []
+    }
+}
+
 extension PropertyStruct {
     func customKeyPathInitCode(typeName: String) -> [String] {
         return names.map { name in
             var customKey = name
             let firstJSONableCustomKeyAttr = attributes.first { attr in
-                return attr.name == "JSONableCustomKey"
+                return attr.name == "JSONableCustomKey" || attr.name == "JSONableDateMapper"
             }
-            if let attr = firstJSONableCustomKeyAttr, let firstArg = attr.arguments.first, firstArg.isEmpty == false {
-                customKey = firstArg
+            if let attr = firstJSONableCustomKeyAttr, let firstArg = attr.arguments.first, firstArg.expression.isEmpty == false {
+                customKey = firstArg.expression
             }
-            return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name)),"
+            var customMapper = ""
+            if let attr = firstJSONableCustomKeyAttr, attr.arguments.count == 2, let mapperArg = attr.arguments.last, mapperArg.label == "mapper", mapperArg.expression.isEmpty == false {
+                customMapper = ", mapper: \(mapperArg.expression)"
+            }
+            return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name)\(customMapper)),"
         }
     }
 }
@@ -110,5 +127,6 @@ struct MyJSONablePlugin: CompilerPlugin {
         JSONableMacro.self,
         JSONableSubclassMacro.self,
         JSONableCustomKeyMacro.self,
+        JSONableCustomDateMacro.self,
     ]
 }

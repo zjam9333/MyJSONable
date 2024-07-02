@@ -76,3 +76,26 @@ struct Person22: JSONable {
     var stringVal: String?
     var date: Date = Date()
 }
+
+do {
+    @JSONableMacro
+    struct DateTest: JSONable {
+        @JSONableDateMapper("date1000", mapper: .unixTimeStampMilliSecond)
+        var date2: Date?
+        @JSONableDateMapper("date", mapper: .unixTimeStampSecond)
+        var date: Date?
+    }
+    let caDateTest = DateTest(fromJson: [
+        "boolVal": 999,
+        "doubleVal": "3.14",
+        "intVal": "999",
+        "date": Date().timeIntervalSince1970,
+        "date1000": Date().timeIntervalSince1970 * 1000
+    ])
+    let toJsonMpDateTest = caDateTest.encodeToJson()
+    print(toJsonMpDateTest)
+    let toJsonDateTest = caDateTest.encodeToJsonString()!
+    //print(toJson["date"] as! Double)
+    //    assert((toJson["date"] as? Double) == 12345)
+    print(toJsonDateTest)
+}

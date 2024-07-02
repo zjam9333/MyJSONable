@@ -41,6 +41,12 @@ changes & fixed:
 
 - 修复了连续定义的属性keyPathList代码生成缺少变量，例如`var a, b, c, d: String?`
 
+### 1.1.3a
+
+news:
+
+- 新增Date属性转化宏`JSONableDateMapper`，以支持unix时间戳（秒和毫秒）
+
 ## Implement
 
 通过简单的keyPaths遍历实现property写入
@@ -198,6 +204,32 @@ struct Animal_M: JSONable {
     
     func encodeJsonExcludedKeys() -> Set<AnyKeyPath> {
         return [\Animal_M.price,]
+    }
+}
+```
+
+### Date Mapper 日期转换
+
+example: map unixTimeStamp to Date
+
+```swift
+@JSONableMacro
+struct DateTest: JSONable {
+    @JSONableDateMapper("date1000", mapper: .unixTimeStampMilliSecond)
+    var date2: Date?
+    @JSONableDateMapper("date", mapper: .unixTimeStampSecond)
+    var date: Date?
+}
+```
+
+for other mapper, you can add extension to `JSONableMapper where T == Date`
+
+```swift
+extension JSONableMapper where T == Date {
+    public static let iso8601 = JSONableMapper<Date> { any in
+        // return your date
+    } encode: { date in
+        // return your value
     }
 }
 ```

@@ -66,6 +66,29 @@ final class TestMacro: XCTestCase {
             """#, macros: ["JSONableMacro": JSONableMacro.self, "JSONableCustomKey": JSONableCustomKeyMacro.self])
     }
     
+    func testCustomDate() throws {
+        assertMacroExpansion(#"""
+            @JSONableMacro
+            struct ClassAnimal: JSONable {
+                var stringVal: String?
+                @JSONableDateMapper("date", mapper: .unixTimeStampSecond)
+                var date: Date?
+            }
+            """#, expandedSource: #"""
+            struct ClassAnimal: JSONable {
+                var stringVal: String?
+                var date: Date?
+            
+                func allKeyPathList() -> [JSONableKeyPathObject] {
+                    return [
+                        .init(name: "stringVal", keyPath: \ClassAnimal.stringVal),
+                        .init(name: "date", keyPath: \ClassAnimal.date, mapper: .unixTimeStampSecond),
+                    ]
+                }
+            }
+            """#, macros: ["JSONableMacro": JSONableMacro.self, "JSONableDateMapper": JSONableCustomDateMacro.self])
+    }
+    
     func testMacroVarGetter() throws {
         assertMacroExpansion(#"""
             @JSONableMacro
