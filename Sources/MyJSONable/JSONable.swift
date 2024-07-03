@@ -220,4 +220,25 @@ public struct JSONableKeyPathObject {
     
     /// [Model?] [Model]?
     /// 不懂这个结构
+    
+    /// Any Mapper with Value
+    public init<Root, Value>(name: String, keyPath: WritableKeyPath<Root, Value>, mapper: JSONableMapper<Value>) {
+        self.init(name: name, keyPath: keyPath) { model in
+            return mapper.encode(model)
+        } customSet: { json in
+            return mapper.decode(json)
+        }
+    }
+    
+    /// Any Mapper with Value?
+    public init<Root, Value>(name: String, keyPath: WritableKeyPath<Root, Value?>, mapper: JSONableMapper<Value>) {
+        self.init(name: name, keyPath: keyPath) { model in
+            guard let model = model else {
+                return nil
+            }
+            return mapper.encode(model)
+        } customSet: { json in
+            return mapper.decode(json)
+        }
+    }
 }

@@ -89,15 +89,46 @@ public struct JSONableCustomKeyMacro: PeerMacro {
     }
 }
 
+public struct JSONableCustomDateMacro: PeerMacro {
+    public static func expansion(of node: SwiftSyntax.AttributeSyntax, providingPeersOf declaration: some SwiftSyntax.DeclSyntaxProtocol, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax] {
+        guard let variable = declaration.as(VariableDeclSyntax.self) else {
+            throw JSONableError(description: "attached on properties only")
+        }
+        let property = PropertyStruct(variable: variable, igoreAttribute: true)
+        if property.names.count > 1 {
+            throw JSONableError(description: "required 1 Date property name only, found \(property.names.count), write variable code separately")
+        }
+        return []
+    }
+}
+
 extension PropertyStruct {
     func customKeyPathInitCode(typeName: String) -> [String] {
         return names.map { name in
             var customKey = name
-            let firstJSONableCustomKeyAttr = attributes.first { attr in
-                return attr.name == "JSONableCustomKey"
+            
+            // 兼容以下两个宏
+            // JSONableCustomKey(_ key: String)
+            // JSONableDateMapper(_ key: String? = nil, mapper: JSONableMapper<Date>)
+            
+            let firstJSONableCustomAttr = attributes.first { attr in
+                return attr.name == "JSONableCustomKey" || attr.name == "JSONableDateMapper"
             }
-            if let attr = firstJSONableCustomKeyAttr, let firstArg = attr.arguments.first, firstArg.isEmpty == false {
-                customKey = firstArg
+            if let attr = firstJSONableCustomAttr, let firstArg = attr.arguments.first, firstArg.label == nil, firstArg.expression.isEmpty == false {
+                // JSONableCustomKey and JSONableDateMapper use non-labeled arg as JSON key
+                customKey = firstArg.expression
+            }
+            
+            switch firstJSONableCustomAttr?.name ?? "" {
+            case "JSONableDateMapper":
+                let mapperArg = firstJSONableCustomAttr?.arguments.first { arg in
+                    return arg.label == "mapper"
+                }
+                if let mapperArg = mapperArg {
+                    return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name), mapper: \(mapperArg.expression)),"
+                }
+            default:
+                break
             }
             return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name)),"
         }
@@ -110,5 +141,6 @@ struct MyJSONablePlugin: CompilerPlugin {
         JSONableMacro.self,
         JSONableSubclassMacro.self,
         JSONableCustomKeyMacro.self,
+        JSONableCustomDateMacro.self,
     ]
 }

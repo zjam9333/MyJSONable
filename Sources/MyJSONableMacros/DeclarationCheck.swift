@@ -139,9 +139,14 @@ struct DeclCheck {
 /// ```
 struct PropertyStruct {
     
+    struct Argument {
+        let label: String?
+        let expression: String
+    }
+    
     struct AttributeSt {
         let name: String
-        let arguments: [String]
+        let arguments: [Argument]
     }
     
     let attributes: [AttributeSt]
@@ -162,17 +167,13 @@ struct PropertyStruct {
             guard let name: String = attr.attributeName.as(IdentifierTypeSyntax.self)?.name.text else {
                 return nil
             }
-            let arguments: [String] = attr.arguments?.as(LabeledExprListSyntax.self)?.compactMap { label in
-                guard let express = label.expression.as(StringLiteralExprSyntax.self) else {
+            let arguments: [Argument] = attr.arguments?.as(LabeledExprListSyntax.self)?.compactMap { label in
+                let value = label.expression.as(StringLiteralExprSyntax.self)?.segments.first?.as(StringSegmentSyntax.self)?.content.text ??
+                label.expression.as(MemberAccessExprSyntax.self)?.description
+                guard let value = value else {
                     return nil
                 }
-                guard let first = express.segments.first else {
-                    return nil
-                }
-                guard let stringSegment = first.as(StringSegmentSyntax.self) else {
-                    return nil
-                }
-                return stringSegment.content.text
+                return Argument(label: label.label?.text, expression: value)
             } ?? []
             return AttributeSt(name: name, arguments: arguments)
         }

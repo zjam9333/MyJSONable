@@ -96,3 +96,51 @@ extension Optional: JSONableEnum where Wrapped: JSONableEnum {
         }
     }
 }
+
+public struct JSONableMapper<T> {
+    let decode: (Any) -> T?
+    let encode: (T) -> Any?
+    
+    public init(decode: @escaping (Any) -> T?, encode: @escaping (T) -> Any?) {
+        self.decode = decode
+        self.encode = encode
+    }
+}
+
+public typealias JSONableDateMapper = JSONableMapper<Date>
+
+extension JSONableDateMapper {
+    
+    public static let unixTimeStampSecond = JSONableMapper<Date> { any in
+        var timeInterval: TimeInterval?
+        switch any {
+        case let t as TimeInterval:
+            timeInterval = t
+        default:
+            timeInterval = TimeInterval._transform(from: any)
+        }
+        guard let timeInterval = timeInterval else {
+            return nil
+        }
+        return Date(timeIntervalSince1970: timeInterval)
+    } encode: { date in
+        return date.timeIntervalSince1970
+    }
+    
+    public static let unixTimeStampMilliSecond = JSONableMapper<Date> { any in
+        var timeInterval: TimeInterval?
+        switch any {
+        case let t as TimeInterval:
+            timeInterval = t
+        default:
+            timeInterval = TimeInterval._transform(from: any)
+        }
+        guard var timeInterval = timeInterval else {
+            return nil
+        }
+        timeInterval /= 1000
+        return Date(timeIntervalSince1970: timeInterval)
+    } encode: { date in
+        return date.timeIntervalSince1970 * 1000
+    }
+}
