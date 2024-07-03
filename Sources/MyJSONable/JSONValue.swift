@@ -107,7 +107,9 @@ public struct JSONableMapper<T> {
     }
 }
 
-extension JSONableMapper where T == Date {
+public typealias JSONableDateMapper = JSONableMapper<Date>
+
+extension JSONableDateMapper {
     
     public static let unixTimeStampSecond = JSONableMapper<Date> { any in
         var timeInterval: TimeInterval?

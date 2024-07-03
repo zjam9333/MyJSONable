@@ -106,17 +106,31 @@ extension PropertyStruct {
     func customKeyPathInitCode(typeName: String) -> [String] {
         return names.map { name in
             var customKey = name
-            let firstJSONableCustomKeyAttr = attributes.first { attr in
+            
+            // 兼容以下两个宏
+            // JSONableCustomKey(_ key: String)
+            // JSONableDateMapper(_ key: String? = nil, mapper: JSONableMapper<Date>)
+            
+            let firstJSONableCustomAttr = attributes.first { attr in
                 return attr.name == "JSONableCustomKey" || attr.name == "JSONableDateMapper"
             }
-            if let attr = firstJSONableCustomKeyAttr, let firstArg = attr.arguments.first, firstArg.expression.isEmpty == false {
+            if let attr = firstJSONableCustomAttr, let firstArg = attr.arguments.first, firstArg.label == nil, firstArg.expression.isEmpty == false {
+                // JSONableCustomKey and JSONableDateMapper use non-labeled arg as JSON key
                 customKey = firstArg.expression
             }
-            var customMapper = ""
-            if let attr = firstJSONableCustomKeyAttr, attr.arguments.count == 2, let mapperArg = attr.arguments.last, mapperArg.label == "mapper", mapperArg.expression.isEmpty == false {
-                customMapper = ", mapper: \(mapperArg.expression)"
+            
+            switch firstJSONableCustomAttr?.name ?? "" {
+            case "JSONableDateMapper":
+                let mapperArg = firstJSONableCustomAttr?.arguments.first { arg in
+                    return arg.label == "mapper"
+                }
+                if let mapperArg = mapperArg {
+                    return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name), mapper: \(mapperArg.expression)),"
+                }
+            default:
+                break
             }
-            return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name)\(customMapper)),"
+            return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name)),"
         }
     }
 }

@@ -41,7 +41,7 @@ changes & fixed:
 
 - 修复了连续定义的属性keyPathList代码生成缺少变量，例如`var a, b, c, d: String?`
 
-### 1.1.3a
+### 1.1.3
 
 news:
 
@@ -216,9 +216,11 @@ example: map unixTimeStamp to Date
 @JSONableMacro
 struct DateTest: JSONable {
     @JSONableDateMapper("date1000", mapper: .unixTimeStampMilliSecond)
-    var date2: Date?
-    @JSONableDateMapper("date", mapper: .unixTimeStampSecond)
-    var date: Date?
+    var date2: Date? // with custom key "date1000"
+    @JSONableDateMapper("date0", mapper: .unixTimeStampSecond)
+    var date: Date? // with custom key "date0"
+    @JSONableDateMapper(mapper: .unixTimeStampSecond)
+    var date3: Date? // with default key "date3" depends on name
 }
 ```
 

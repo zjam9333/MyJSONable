@@ -84,6 +84,8 @@ do {
         var date2: Date?
         @JSONableDateMapper("date", mapper: .unixTimeStampSecond)
         var date: Date?
+        @JSONableDateMapper(mapper: .unixTimeStampSecond)
+        var date3: Date?
     }
     let caDateTest = DateTest(fromJson: [
         "boolVal": 999,
