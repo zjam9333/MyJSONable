@@ -76,7 +76,11 @@ public struct JSONableSubclassMacro: MemberMacro {
     }
 }
 
-public struct JSONableCustomKeyMacro: PeerMacro {
+public protocol DefaultPeerPropertyMacroProtocol: PeerMacro {
+    
+}
+
+extension DefaultPeerPropertyMacroProtocol {
     public static func expansion(of node: SwiftSyntax.AttributeSyntax, providingPeersOf declaration: some SwiftSyntax.DeclSyntaxProtocol, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax] {
         guard let variable = declaration.as(VariableDeclSyntax.self) else {
             throw JSONableError(description: "attached on properties only")
@@ -89,20 +93,24 @@ public struct JSONableCustomKeyMacro: PeerMacro {
     }
 }
 
-public struct JSONableCustomDateMacro: PeerMacro {
-    public static func expansion(of node: SwiftSyntax.AttributeSyntax, providingPeersOf declaration: some SwiftSyntax.DeclSyntaxProtocol, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.DeclSyntax] {
-        guard let variable = declaration.as(VariableDeclSyntax.self) else {
-            throw JSONableError(description: "attached on properties only")
-        }
-        let property = PropertyStruct(variable: variable, igoreAttribute: true)
-        if property.names.count > 1 {
-            throw JSONableError(description: "required 1 Date property name only, found \(property.names.count), write variable code separately")
-        }
-        return []
-    }
+public struct JSONableCustomKeyMacro: DefaultPeerPropertyMacroProtocol {
 }
 
+public struct JSONableIgnoreKeyMacro: DefaultPeerPropertyMacroProtocol {
+}
+
+public struct JSONableCustomDateMacro: DefaultPeerPropertyMacroProtocol {
+}
+
+// 这里的宏名称是实际应用的名称，有没有办法不这样写死？
+private let allPeerNames: Set<String> = [
+    "JSONableCustomKey",
+    "JSONableDateMapper",
+    "JSONableIgnoreKey",
+]
+
 extension PropertyStruct {
+    // 根据property头部的宏，生成不同的映射方法
     func customKeyPathInitCode(typeName: String) -> [String] {
         return names.map { name in
             var customKey = name
@@ -112,7 +120,7 @@ extension PropertyStruct {
             // JSONableDateMapper(_ key: String? = nil, mapper: JSONableMapper<Date>)
             
             let firstJSONableCustomAttr = attributes.first { attr in
-                return attr.name == "JSONableCustomKey" || attr.name == "JSONableDateMapper"
+                return allPeerNames.contains(attr.name)
             }
             if let attr = firstJSONableCustomAttr, let firstArg = attr.arguments.first, firstArg.label == nil, firstArg.expression.isEmpty == false {
                 // JSONableCustomKey and JSONableDateMapper use non-labeled arg as JSON key
@@ -127,10 +135,15 @@ extension PropertyStruct {
                 if let mapperArg = mapperArg {
                     return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name), mapper: \(mapperArg.expression)),"
                 }
+            case "JSONableIgnoreKey":
+                return "" // 忽略key直接不返回映射关系
             default:
                 break
             }
             return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name)),"
+        }
+        .filter { code in
+            return code.isEmpty == false
         }
     }
 }
@@ -142,5 +155,6 @@ struct MyJSONablePlugin: CompilerPlugin {
         JSONableSubclassMacro.self,
         JSONableCustomKeyMacro.self,
         JSONableCustomDateMacro.self,
+        JSONableIgnoreKeyMacro.self,
     ]
 }

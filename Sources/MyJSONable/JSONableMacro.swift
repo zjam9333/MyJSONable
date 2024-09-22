@@ -12,3 +12,6 @@ public macro JSONableCustomKey(_ key: String) = #externalMacro(module: "MyJSONab
 
 @attached(peer)
 public macro JSONableDateMapper(_ key: String? = nil, mapper: JSONableDateMapper) = #externalMacro(module: "MyJSONableMacros", type: "JSONableCustomDateMacro")
+
+@attached(peer)
+public macro JSONableIgnoreKey() = #externalMacro(module: "MyJSONableMacros", type: "JSONableIgnoreKeyMacro")

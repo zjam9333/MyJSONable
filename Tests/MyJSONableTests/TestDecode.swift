@@ -331,6 +331,23 @@ final class TestDecode: XCTestCase {
         XCTAssert(an.b == "b")
         XCTAssert(an.c == "c")
     }
+    
+    func testPropertyIgnored() throws {
+        @JSONableMacro
+        struct Person4: JSONable {
+            var intVal: Int?
+            var stringVal: String?
+            @JSONableIgnoreKey
+            var ignoreVal: String = "abcde"
+        }
+        let ppper = Person4(fromJson: [
+            "intVal": 999,
+            "stringVal": "3.14",
+            "ignoreVal": "999",
+        ])
+        
+        XCTAssert(ppper.ignoreVal == "abcde")
+    }
 }
 
 #endif
