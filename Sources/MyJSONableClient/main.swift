@@ -5,6 +5,7 @@ import Foundation
 class Person: JSONable {
     var intVal: Int?
     var stringVal: String?
+    @JSONableDateMapper(mapper: .unixTimeStampSecond)
     var date: Date = Date()
     
     required init() {
@@ -63,8 +64,6 @@ let toJson = ca.encodeToJson()
 assert(toJson["date"] as? Date == nil)
 assert(toJson["date2"] as? Date != nil)
 
-let ta = JSONableKeyPathObject(name: "da", keyPath: \Person.date)
-
 @JSONableMacro
 struct Person22: JSONable {
     
@@ -74,6 +73,7 @@ struct Person22: JSONable {
     
     var intVal: Int?
     var stringVal: String?
+    @JSONableDateMapper(mapper: .unixTimeStampSecond)
     var date: Date = Date()
 }
 
@@ -109,6 +109,10 @@ do {
         var stringVal: String?
         @JSONableIgnoreKey
         var ignoreVal: String = "abcde"
+        
+        func didFinishDecode() {
+            print("didFinishDecode wow nice !")
+        }
     }
     let ppper = Person4(fromJson: [
         "intVal": 999,

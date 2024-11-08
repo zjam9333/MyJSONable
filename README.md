@@ -8,7 +8,13 @@ JSON to Model, Model to JSON
 
 news:
 
-- 新增宏`JSONableIngoreKey`直接忽略属性的映射，包括encode和decode，可替代`encodeJsonExcludedKeys`方法
+- 新增宏`JSONableIngoreKey`直接忽略属性的映射，包括encode和decode
+- 新增`didFinishDecode`方法
+
+changes:
+
+- `Date`类型必须使用`JSONableDateMapper`或`JSONableIngoreKey`修饰
+- 移除`encodeJsonExcludedKeys`实现，使用`JSONableIngoreKey`宏代替
 
 ### 1.1.3
 
