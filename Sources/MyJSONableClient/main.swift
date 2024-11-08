@@ -5,6 +5,7 @@ import Foundation
 class Person: JSONable {
     var intVal: Int?
     var stringVal: String?
+    @JSONableDateMapper(mapper: .unixTimeStampSecond)
     var date: Date = Date()
     
     required init() {
@@ -40,12 +41,12 @@ class Student: Person {
 // TODO: 有bug！\Person.date和\Student.date的不一样，导致encodeJson时customKeyPathList无法通过KeyPath的hashValue去重
 
 do {
-    var ca = Person()
-    ca[keyPath: \Student.date] = Date()
-    let a: AnyKeyPath = \Person.date
-    let b: AnyKeyPath = \Student.date
-    let c: AnyKeyPath = \Student.date
-    print(ca.date as Any)
+//    var ca = Person()
+//    ca[keyPath: \Student.date] = Date()
+//    let a: AnyKeyPath = \Person.date
+//    let b: AnyKeyPath = \Student.date
+//    let c: AnyKeyPath = \Student.date
+//    print(ca.date as Any)
 }
 
 let ca = Student(fromJson: [
@@ -63,8 +64,6 @@ let toJson = ca.encodeToJson()
 assert(toJson["date"] as? Date == nil)
 assert(toJson["date2"] as? Date != nil)
 
-let ta = JSONableKeyPathObject(name: "da", keyPath: \Person.date)
-
 @JSONableMacro
 struct Person22: JSONable {
     
@@ -74,6 +73,7 @@ struct Person22: JSONable {
     
     var intVal: Int?
     var stringVal: String?
+    @JSONableDateMapper(mapper: .unixTimeStampSecond)
     var date: Date = Date()
 }
 
@@ -100,4 +100,25 @@ do {
     //print(toJson["date"] as! Double)
     //    assert((toJson["date"] as? Double) == 12345)
     print(toJsonDateTest)
+}
+
+do {
+    @JSONableMacro
+    struct Person4: JSONable {
+        var intVal: Int?
+        var stringVal: String?
+        @JSONableIgnoreKey
+        var ignoreVal: String = "abcde"
+        
+        func didFinishDecode() {
+            print("didFinishDecode wow nice !")
+        }
+    }
+    let ppper = Person4(fromJson: [
+        "intVal": 999,
+        "stringVal": "3.14",
+        "ignoreVal": "999",
+    ])
+    
+    assert(ppper.ignoreVal == "abcde")
 }

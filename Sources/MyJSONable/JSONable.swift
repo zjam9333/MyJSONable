@@ -18,9 +18,14 @@ public protocol JSONEncodeDecode {
     init(fromJson json: [String: JSONValue])
     func encodeToJson() -> [String: JSONValue]
     init()
+    
+    func didFinishDecode()
 }
 
 extension JSONEncodeDecode {
+    
+    public func didFinishDecode() {
+    }
     
     public init(fromJson json: [String: JSONValue]) {
         self.init()
@@ -50,18 +55,11 @@ public protocol KeyPathListProvider {
     
     /// 自定义的KeyPathList，可以改写jsonKey，customMap等
     func customKeyPathList() -> [JSONableKeyPathObject]
-    
-    /// 序列化json时需要排除的key
-    func encodeJsonExcludedKeys() -> Set<AnyKeyPath>
 }
 
 extension KeyPathListProvider where Self: JSONEncodeDecode {
     
     public func customKeyPathList() -> [JSONableKeyPathObject] {
-        return []
-    }
-    
-    public func encodeJsonExcludedKeys() -> Set<AnyKeyPath> {
         return []
     }
     
@@ -72,6 +70,7 @@ extension KeyPathListProvider where Self: JSONEncodeDecode {
         for kpObj in customKeyPathList() {
             self = kpObj.setValue(json[kpObj.name], self) as? Self ?? self
         }
+        didFinishDecode()
     }
     
     public func encodeToJson() -> [String: JSONValue] {
@@ -84,13 +83,8 @@ extension KeyPathListProvider where Self: JSONEncodeDecode {
             // custom的keyPath覆盖默认的allKeyPath
             allKeyPathDict[kpObj.keyPath] = kpObj
         }
-        let excludedKeys = encodeJsonExcludedKeys()
         for keyvale in allKeyPathDict {
-            let (hash, chi) = keyvale
-            if excludedKeys.contains(hash) {
-                // 排除key
-                continue
-            }
+            let (_, chi) = keyvale
             let key = chi.name
             json[key] = chi.getValue(self)
         }
@@ -136,15 +130,6 @@ public struct JSONableKeyPathObject {
     /// 任意Any转Value的CustomMap方法，customGet必须返回JSON可接受类型
     public init<Root, Value>(name: String, keyPath: WritableKeyPath<Root, Value>, customGet: @escaping (Value) -> JSONValue?, customSet: @escaping (JSONValue) -> Value?) {
         self.init(private: nil, name: name, keyPath: keyPath, customGet: customGet, customSet: customSet)
-    }
-    
-    /// 未实现的类型，默认不转换（用于代码生成能编译通过）
-    public init<Root, Value>(name: String, keyPath: WritableKeyPath<Root, Value>) {
-        self.init(private: nil, name: name, keyPath: keyPath) { v in
-            return nil
-        } customSet: { a in
-            return nil
-        }
     }
     
     /// Basic Value: String, Bool, Int, Double.... [Basic Value]

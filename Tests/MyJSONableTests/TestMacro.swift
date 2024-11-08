@@ -277,5 +277,38 @@ final class TestMacro: XCTestCase {
             }
             """#, macros: ["JSONableMacro": JSONableMacro.self, "JSONableSubclassMacro": JSONableSubclassMacro.self])
     }
+    
+    func testMacroIgnoreKey() throws {
+        assertMacroExpansion(#"""
+            @JSONableMacro
+            class ClassAnimal: JSONable {
+                var boolVal: Bool?
+                @JSONableIgnoreKey
+                var doubleVal: Double?
+                var intVal: Int?
+                @JSONableIgnoreKey
+                var stringVal: String = "123"
+                required init() {}
+            }
+            """#, expandedSource: #"""
+            class ClassAnimal: JSONable {
+                var boolVal: Bool?
+                var doubleVal: Double?
+                var intVal: Int?
+                var stringVal: String = "123"
+                required init() {}
+            
+                func allKeyPathList() -> [JSONableKeyPathObject] {
+                    return [
+                        .init(name: "boolVal", keyPath: \ClassAnimal.boolVal),
+                        .init(name: "intVal", keyPath: \ClassAnimal.intVal),
+                    ]
+                }
+            }
+            """#, macros: [
+                "JSONableMacro": JSONableMacro.self,
+                "JSONableIgnoreKey": JSONableIgnoreKeyMacro.self,
+            ])
+    }
 }
 #endif

@@ -4,9 +4,40 @@ JSON to Model, Model to JSON
 
 ## Version
 
-### 1.0.0
+### 1.1.4?
 
-- 基础功能 JSONable + JSONableMacro宏
+news:
+
+- 新增宏`JSONableIngoreKey`直接忽略属性的映射，包括encode和decode
+- 新增`didFinishDecode`方法
+
+changes:
+
+- `Date`类型必须使用`JSONableDateMapper`或`JSONableIngoreKey`修饰
+- 移除`encodeJsonExcludedKeys`实现，使用`JSONableIngoreKey`宏代替
+
+### 1.1.3
+
+news:
+
+- 新增Date属性转化宏`JSONableDateMapper`，以支持unix时间戳（秒和毫秒）
+
+### 1.1.2
+
+news:
+
+- 新增自定义key宏`JSONableCustomKey`，标记于属性前面
+
+changes & fixed: 
+
+- 修复了连续定义的属性keyPathList代码生成缺少变量，例如`var a, b, c, d: String?`
+
+### 1.1.1
+
+changes:
+
+- `ValueTypeKeyPathProvider`名称标记为废弃
+- macro实现去除`ExtensionMacro`协议实现
 
 ### 1.1.0
 
@@ -24,28 +55,9 @@ issues:
 
 - class继承时，混用父类keyPath和子类keyPath，导致`encodeJsonExcludedKeys`无法正确排除
 
-### 1.1.1
+### 1.0.0
 
-changes:
-
-- `ValueTypeKeyPathProvider`名称标记为废弃
-- macro实现去除`ExtensionMacro`协议实现
-
-### 1.1.2
-
-news:
-
-- 新增自定义key宏`JSONableCustomKey`，标记于属性前面
-
-changes & fixed: 
-
-- 修复了连续定义的属性keyPathList代码生成缺少变量，例如`var a, b, c, d: String?`
-
-### 1.1.3
-
-news:
-
-- 新增Date属性转化宏`JSONableDateMapper`，以支持unix时间戳（秒和毫秒）
+- 基础功能 JSONable + JSONableMacro宏
 
 ## Implement
 
@@ -65,7 +77,7 @@ use swift package manager add this git
 import MyJSONable
 
 @JSONableMacro
-struct Animal_M: JSONable {
+struct Animal: JSONable {
     var boolVal: Bool = false
     var doubleVal: Double = 0
     var intVal: Int = 0
@@ -73,7 +85,7 @@ struct Animal_M: JSONable {
     var child3: [String: Any] = [:]
 }
 
-var animal = Animal2()
+var animal = Animal()
 let json: [String: Any] = [
     "boolVal": true,
     "doubleVal": 3.14,
@@ -205,6 +217,17 @@ struct Animal_M: JSONable {
     func encodeJsonExcludedKeys() -> Set<AnyKeyPath> {
         return [\Animal_M.price,]
     }
+}
+```
+
+or use new macro `JSONableIgnoreKey`
+```
+@JSONableMacro
+struct Person4: JSONable {
+    var intVal: Int?
+    var stringVal: String?
+    @JSONableIgnoreKey
+    var ignoreVal: String = "abcde"
 }
 ```
 
