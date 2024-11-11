@@ -10,59 +10,7 @@ class Person: JSONable {
     
     required init() {
     }
-    
-    func customKeyPathList() -> [JSONableKeyPathObject] {
-        return [
-            .init(name: "date", keyPath: \Person.date, customGet: { value in
-                return value
-            }, customSet: { j in
-                return Date()
-            })
-        ]
-    }
 }
-
-@JSONableSubclassMacro
-class Student: Person {
-    var name: String?
-    var id: Int = 0
-    
-    override func customKeyPathList() -> [JSONableKeyPathObject] {
-        return [
-            .init(name: "date2", keyPath: \Student.date, customGet: { value in
-                return value
-            }, customSet: { j in
-                return Date()
-            })
-        ]
-    }
-}
-
-// TODO: 有bug！\Person.date和\Student.date的不一样，导致encodeJson时customKeyPathList无法通过KeyPath的hashValue去重
-
-do {
-//    var ca = Person()
-//    ca[keyPath: \Student.date] = Date()
-//    let a: AnyKeyPath = \Person.date
-//    let b: AnyKeyPath = \Student.date
-//    let c: AnyKeyPath = \Student.date
-//    print(ca.date as Any)
-}
-
-let ca = Student(fromJson: [
-    "boolVal": 999,
-    "doubleVal": "3.14",
-    "intVal": "999",
-    "stringVal": 1999.99,
-    "name": "hello",
-    "date": "abcd"
-])
-print(String(describing: ca))
-assert(ca.intVal == 999)
-assert(ca.name == "hello")
-let toJson = ca.encodeToJson()
-assert(toJson["date"] as? Date == nil)
-assert(toJson["date2"] as? Date != nil)
 
 @JSONableMacro
 struct Person22: JSONable {
@@ -121,4 +69,32 @@ do {
     ])
     
     assert(ppper.ignoreVal == "abcde")
+}
+
+extension JSONableMapper where T == Int {
+    static let myFakeIntMapper = JSONableMapper<Int> { v in
+        return -100
+    } encode: { v in
+        return 100
+    }
+}
+
+do {
+    @JSONableMacro
+    struct Person5: JSONable {
+        var intVal: Int?
+        @JSONableCustomMapper("testCustom", mapper: .myFakeIntMapper)
+        var customMap: Int = 0
+    }
+    let ppper2 = Person5(fromJson: [
+        "intVal": 999,
+        "stringVal": "3.14",
+        "ignoreVal": "999",
+        "testCustom": 888,
+    ])
+//    assert(ppper2.customMap == -100)
+    let js = ppper2.encodeToJsonString()!
+//    assert((js["testCustom"] as? Int) == 100)
+    print("test JSONableCustomMapper", ppper2)
+    print("json", js)
 }

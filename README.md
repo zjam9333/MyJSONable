@@ -4,17 +4,19 @@ JSON to Model, Model to JSON
 
 ## Version
 
-### 1.1.4?
+### 1.2.0?
 
 news:
 
 - 新增宏`JSONableIngoreKey`直接忽略属性的映射，包括encode和decode
+- 新增宏`JSONableCustomMapper`替代`customKeyPathList()`方法
 - 新增`didFinishDecode`方法
 
 changes:
 
 - `Date`类型必须使用`JSONableDateMapper`或`JSONableIngoreKey`修饰
-- 移除`encodeJsonExcludedKeys`实现，使用`JSONableIngoreKey`宏代替
+- 移除`encodeJsonExcludedKeys`实现，推荐使用`JSONableIngoreKey`
+- 移除`customKeyPathList()`实现，推荐使用`JSONableCustomMapper`
 
 ### 1.1.3
 
@@ -168,16 +170,6 @@ enum EnumIntAnimal: Int, JSONableEnum {
 Different key from json
 example using key `"cccc"` for property `var children2`
 
-```swift
-func customKeyPathList() -> [JSONableKeyPathObject] { 
-    return [
-        .init(name: "cccc", keyPath: \Animal2.children2)
-    ]
-}
-```
-
-or simple style:
-
 ```
 @JSONableCustomKey("cccc")
 var children2: Child?
@@ -187,20 +179,14 @@ var children2: Child?
 
 mapper `JsonValue <--> ModelValue`
 
-example `var birthday: Date?`
+use macro `JSONableCustomMapper` on property
 
 ```swift
-func customKeyPathList() -> [JSONableKeyPathObject] { 
-    return [
-        .init(name: "birthday", keyPath: \Animal2.birthday, customGet: { someDate in
-            return someDate?.timeIntervalSince1970
-        }, customSet: { someI in
-            if let interv = someI as? TimeInterval {
-                return Date(timeIntervalSince1970: interv)
-            }
-            return nil
-        }),
-    ]
+@JSONableMacro
+struct Person5: JSONable {
+    var intVal: Int?
+    @JSONableCustomMapper("testCustom", mapper: .myFakeIntMapper)
+    var customMap: Int = 0
 }
 ```
 

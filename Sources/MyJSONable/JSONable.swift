@@ -52,22 +52,12 @@ extension JSONEncodeDecode {
 public protocol KeyPathListProvider {
     /// 写入属性必要的列表，可用Macro生成
     func allKeyPathList() -> [JSONableKeyPathObject]
-    
-    /// 自定义的KeyPathList，可以改写jsonKey，customMap等
-    func customKeyPathList() -> [JSONableKeyPathObject]
 }
 
 extension KeyPathListProvider where Self: JSONEncodeDecode {
     
-    public func customKeyPathList() -> [JSONableKeyPathObject] {
-        return []
-    }
-    
     public mutating func decodeFromJson(json: [String: JSONValue]) {
         for kpObj in allKeyPathList() {
-            self = kpObj.setValue(json[kpObj.name], self) as? Self ?? self
-        }
-        for kpObj in customKeyPathList() {
             self = kpObj.setValue(json[kpObj.name], self) as? Self ?? self
         }
         didFinishDecode()
@@ -77,10 +67,6 @@ extension KeyPathListProvider where Self: JSONEncodeDecode {
         var json = [String: JSONValue]()
         var allKeyPathDict: [AnyKeyPath: JSONableKeyPathObject] = [:]
         for kpObj in allKeyPathList() {
-            allKeyPathDict[kpObj.keyPath] = kpObj
-        }
-        for kpObj in customKeyPathList() {
-            // custom的keyPath覆盖默认的allKeyPath
             allKeyPathDict[kpObj.keyPath] = kpObj
         }
         for keyvale in allKeyPathDict {
