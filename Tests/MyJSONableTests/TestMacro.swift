@@ -192,44 +192,6 @@ final class TestMacro: XCTestCase {
         )
     }
     
-    func testMacroWithCustomKey() throws {
-        assertMacroExpansion(#"""
-            @JSONableMacro
-            struct Animal2: JSONable {
-                var boolVal: Bool = false
-                var doubleVal: Double = 0
-                func customKeyPathList() -> [JSONableKeyPathObject] {
-                    return []
-                }
-                var intVal: Int = 0
-                var stringVal: String = ""
-                var child3: [String: Any] = [:]
-            }
-            """#, expandedSource: #"""
-            struct Animal2: JSONable {
-                var boolVal: Bool = false
-                var doubleVal: Double = 0
-                func customKeyPathList() -> [JSONableKeyPathObject] {
-                    return []
-                }
-                var intVal: Int = 0
-                var stringVal: String = ""
-                var child3: [String: Any] = [:]
-            
-                func allKeyPathList() -> [JSONableKeyPathObject] {
-                    return [
-                        .init(name: "boolVal", keyPath: \Animal2.boolVal),
-                        .init(name: "doubleVal", keyPath: \Animal2.doubleVal),
-                        .init(name: "intVal", keyPath: \Animal2.intVal),
-                        .init(name: "stringVal", keyPath: \Animal2.stringVal),
-                        .init(name: "child3", keyPath: \Animal2.child3),
-                    ]
-                }
-            }
-            """#, macros: ["JSONableMacro": JSONableMacro.self]
-        )
-    }
-    
     func testMacroWithClassInherit() throws {
         assertMacroExpansion(#"""
             @JSONableMacro
@@ -309,6 +271,44 @@ final class TestMacro: XCTestCase {
                 "JSONableMacro": JSONableMacro.self,
                 "JSONableIgnoreKey": JSONableIgnoreKeyMacro.self,
             ])
+    }
+    
+    func testCustomMapper() throws {
+        assertMacroExpansion(#"""
+            enum MyMappers {
+                static let myFakeIntMapper = JSONableMapper<Int> { v in
+                    return -100
+                } encode: { v in
+                    return 100
+                }
+            }
+            
+            @JSONableMacro
+            struct Person4: JSONable {
+                var intVal: Int?
+                @JSONableCustomMapper("testCustom", mapper: MyMappers.myFakeIntMapper)
+                var customMap: Int = 0
+            }
+            """#, expandedSource: #"""
+            enum MyMappers {
+                static let myFakeIntMapper = JSONableMapper<Int> { v in
+                    return -100
+                } encode: { v in
+                    return 100
+                }
+            }
+            struct Person4: JSONable {
+                var intVal: Int?
+                var customMap: Int = 0
+            
+                func allKeyPathList() -> [JSONableKeyPathObject] {
+                    return [
+                        .init(name: "intVal", keyPath: \Person4.intVal),
+                        .init(name: "testCustom", keyPath: \Person4.customMap, mapper: MyMappers.myFakeIntMapper),
+                    ]
+                }
+            }
+            """#, macros: ["JSONableMacro": JSONableMacro.self, "JSONableCustomMapper": JSONableCustomMapperMacro.self])
     }
 }
 #endif

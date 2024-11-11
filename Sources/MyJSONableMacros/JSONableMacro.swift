@@ -99,15 +99,19 @@ public struct JSONableCustomKeyMacro: DefaultPeerPropertyMacroProtocol {
 public struct JSONableIgnoreKeyMacro: DefaultPeerPropertyMacroProtocol {
 }
 
+public struct JSONableCustomMapperMacro: DefaultPeerPropertyMacroProtocol {
+}
+
 public struct JSONableCustomDateMacro: DefaultPeerPropertyMacroProtocol {
 }
 
 // 这里的宏名称是实际应用的名称，有没有办法不这样写死？
-private let allPeerNames: Set<String> = [
-    "JSONableCustomKey",
-    "JSONableDateMapper",
-    "JSONableIgnoreKey",
-]
+private enum MacroPeerName: String {
+    case customKey = "JSONableCustomKey"
+    case dateMapper = "JSONableDateMapper"
+    case customMapper = "JSONableCustomMapper"
+    case ignoreKey = "JSONableIgnoreKey"
+}
 
 extension PropertyStruct {
     // 根据property头部的宏，生成不同的映射方法
@@ -120,22 +124,22 @@ extension PropertyStruct {
             // JSONableDateMapper(_ key: String? = nil, mapper: JSONableMapper<Date>)
             
             let firstJSONableCustomAttr = attributes.first { attr in
-                return allPeerNames.contains(attr.name)
+                return MacroPeerName(rawValue: attr.name) != nil
             }
             if let attr = firstJSONableCustomAttr, let firstArg = attr.arguments.first, firstArg.label == nil, firstArg.expression.isEmpty == false {
                 // JSONableCustomKey and JSONableDateMapper use non-labeled arg as JSON key
                 customKey = firstArg.expression
             }
             
-            switch firstJSONableCustomAttr?.name ?? "" {
-            case "JSONableDateMapper":
+            switch MacroPeerName(rawValue: firstJSONableCustomAttr?.name ?? "") {
+            case .dateMapper, .customMapper:
                 let mapperArg = firstJSONableCustomAttr?.arguments.first { arg in
                     return arg.label == "mapper"
                 }
                 if let mapperArg = mapperArg {
                     return ".init(name: \"\(customKey)\", keyPath: \\\(typeName).\(name), mapper: \(mapperArg.expression)),"
                 }
-            case "JSONableIgnoreKey":
+            case .ignoreKey:
                 return "" // 忽略key直接不返回映射关系
             default:
                 break
@@ -154,6 +158,7 @@ struct MyJSONablePlugin: CompilerPlugin {
         JSONableMacro.self,
         JSONableSubclassMacro.self,
         JSONableCustomKeyMacro.self,
+        JSONableCustomMapperMacro.self,
         JSONableCustomDateMacro.self,
         JSONableIgnoreKeyMacro.self,
     ]

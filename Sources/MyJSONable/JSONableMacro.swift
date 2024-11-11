@@ -11,6 +11,9 @@ public macro JSONableSubclassMacro() = #externalMacro(module: "MyJSONableMacros"
 public macro JSONableCustomKey(_ key: String) = #externalMacro(module: "MyJSONableMacros", type: "JSONableCustomKeyMacro")
 
 @attached(peer)
+public macro JSONableCustomMapper<T>(_ key: String? = nil, mapper: JSONableMapper<T>) = #externalMacro(module: "MyJSONableMacros", type: "JSONableCustomMapperMacro")
+
+@attached(peer)
 public macro JSONableDateMapper(_ key: String? = nil, mapper: JSONableDateMapper) = #externalMacro(module: "MyJSONableMacros", type: "JSONableCustomDateMacro")
 
 @attached(peer)
