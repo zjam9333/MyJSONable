@@ -20,13 +20,9 @@ extension Array where Element: JSONEncodeDecode {
     }
 }
 
-extension Optional: JSONable where Wrapped: JSONEncodeDecode {
+extension Optional: JSONEncodeDecode where Wrapped: JSONEncodeDecode {
     public init() {
         self = .none
-    }
-    
-    public func allKeyPathList() -> [JSONableKeyPathObject] {
-        return []
     }
     
     public mutating func decodeFromJson(json: [String: JSONValue]) {
