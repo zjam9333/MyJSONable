@@ -18,14 +18,9 @@ public protocol JSONEncodeDecode {
     init(fromJson json: [String: JSONValue])
     func encodeToJson() -> [String: JSONValue]
     init()
-    
-    func didFinishDecode()
 }
 
 extension JSONEncodeDecode {
-    
-    public func didFinishDecode() {
-    }
     
     public init(fromJson json: [String: JSONValue]) {
         self.init()
@@ -60,7 +55,6 @@ extension KeyPathListProvider where Self: JSONEncodeDecode {
         for kpObj in allKeyPathList() {
             self = kpObj.setValue(json[kpObj.name], self) as? Self ?? self
         }
-        didFinishDecode()
     }
     
     public func encodeToJson() -> [String: JSONValue] {

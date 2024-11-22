@@ -2,15 +2,61 @@
 
 JSON to Model, Model to JSON
 
+## Install
+
+use swift package manager add this git, Xcode will download swift-syntax package, then enable and trust Macro for first run.
+
+## Implement
+
+Decoding Json values to Model properties via keyPaths.
+Swift Macro auto generates just a little keypathList function code, will not increase compile time too much.
+
+## Example
+
+define a struct 
+
+```swift
+@JSONableMacro
+struct Animal: JSONable {
+    var boolVal: Bool = false
+    var doubleVal: Double = 0
+    var intVal: Int = 0
+    var stringVal: String = ""
+    var dictVal: [String: Any] = [:]
+    var child4: OtherJSONableType?
+}
+```
+
+the @JSONableMacro generated code will be:
+```swift
+struct Animal: JSONable {
+    var boolVal: Bool = false
+    var doubleVal: Double = 0
+    var intVal: Int = 0
+    var stringVal: String = ""
+    var dictVal: [String: Any] = [:]
+    var child4: OtherJSONableType?
+    func allKeyPathList() -> [JSONableKeyPathObject] {
+        return [
+            .init(name: "boolVal", keyPath: \Animal.boolVal),
+            .init(name: "doubleVal", keyPath: \Animal.doubleVal),
+            .init(name: "intVal", keyPath: \Animal.intVal),
+            .init(name: "stringVal", keyPath: \Animal.stringVal),
+            .init(name: "dictVal", keyPath: \Animal.dictVal),
+            .init(name: "child4", keyPath: \Animal.child4),
+        ]
+    }
+}
+```
+
 ## Version
 
-### 1.2.0?
+### 1.2.0
 
 news:
 
 - 新增宏`JSONableIngoreKey`直接忽略属性的映射，包括encode和decode
 - 新增宏`JSONableCustomMapper`替代`customKeyPathList()`方法
-- 新增`didFinishDecode`方法
 
 changes:
 
@@ -61,16 +107,6 @@ issues:
 
 - 基础功能 JSONable + JSONableMacro宏
 
-## Implement
-
-通过简单的keyPaths遍历实现property写入
-
-Decoding Json values to Model properties via keyPaths
-
-## Install
-
-use swift package manager add this git
-
 ## Documentation
 
 ### Basic 基础用法
@@ -111,7 +147,7 @@ animal.decodeFromJson(json: json)
 let jsonString = animal.encodeToJsonString()
 ```
 
-use `@JSONableMacro` macro to auto generate `allKeyPathList` function, otherwise, write this manually
+use `@JSONableMacro` macro to auto generate `allKeyPathList` function, otherwise, write manually
 
 ### class 
 
@@ -179,7 +215,19 @@ var children2: Child?
 
 mapper `JsonValue <--> ModelValue`
 
-use macro `JSONableCustomMapper` on property
+write a JSONableMapper somewhere, like:
+
+```swift
+extension JSONableMapper where T == Int {
+    static let myFakeIntMapper = JSONableMapper<Int> { v in
+        return -100
+    } encode: { v in
+        return 100
+    }
+}
+```
+
+use macro `JSONableCustomMapper` on property and use this mapper for custom encode and decode. key is optional.
 
 ```swift
 @JSONableMacro
@@ -187,26 +235,15 @@ struct Person5: JSONable {
     var intVal: Int?
     @JSONableCustomMapper("testCustom", mapper: .myFakeIntMapper)
     var customMap: Int = 0
+    @JSONableCustomMapper(mapper: .myFakeIntMapper)
+    var customMap2: Int = 0
 }
 ```
 
-### Exclude Keys to JSON 输出Json时排除特定key
+### Exclude Keys
 
-example: exclude key `price` while encodeToJSON
-```swift
-@JSONableMacro
-struct Animal_M: JSONable {
-    var age: Int = 0
-    var name: String = "Cat"
-    var price: String = "Value not to JSON"
-    
-    func encodeJsonExcludedKeys() -> Set<AnyKeyPath> {
-        return [\Animal_M.price,]
-    }
-}
-```
+example: i don't want the property `price` to be encoded or decoded, use new macro `JSONableIgnoreKey`
 
-or use new macro `JSONableIgnoreKey`
 ```
 @JSONableMacro
 struct Person4: JSONable {
@@ -219,7 +256,7 @@ struct Person4: JSONable {
 
 ### Date Mapper 日期转换
 
-example: map unixTimeStamp to Date
+example: map unixTimeStamp to Date, key is optional.
 
 ```swift
 @JSONableMacro

@@ -57,10 +57,6 @@ do {
         var stringVal: String?
         @JSONableIgnoreKey
         var ignoreVal: String = "abcde"
-        
-        func didFinishDecode() {
-            print("didFinishDecode wow nice !")
-        }
     }
     let ppper = Person4(fromJson: [
         "intVal": 999,
