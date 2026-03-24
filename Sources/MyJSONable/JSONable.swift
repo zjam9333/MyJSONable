@@ -144,6 +144,21 @@ public struct JSONableKeyPathObject {
         }
     }
     
+    /// [Enums]
+    public init<Root, EnumType>(name: String, keyPath: WritableKeyPath<Root, Array<EnumType>>) where EnumType: JSONableEnum {
+        self.init(name: name, keyPath: keyPath) { models in
+            return models.map { j in
+                return j.rawValue
+            }
+        } customSet: { json in
+            let arr = json as? [EnumType.RawValue] ?? []
+            let toEnums = arr.compactMap { r in
+                return EnumType.init(rawValue: r)
+            }
+            return toEnums
+        }
+    }
+    
     /// Array<Enum> ？？用这样的？
 //    public init<EnumType>(name: String, keyPath: WritableKeyPath<Root, Array<EnumType>>) where EnumType: JSONableCustomMap {
 //    }
